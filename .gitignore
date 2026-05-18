@@ -1,0 +1,25 @@
+# Local planning and agent context
+framework/
+AGENTS.md
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Firebase / local environment
+.env
+.env.*
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDEs
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
