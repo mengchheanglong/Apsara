@@ -8,6 +8,8 @@ AGENTS.md
 .flutter-plugins-dependencies
 .packages
 build/
+android/local.properties
+artkh_app/android/local.properties
 
 # Firebase / local environment
 .env
