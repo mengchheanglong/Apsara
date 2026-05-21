@@ -1,0 +1,25 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "apsara-e8411",
+          "appId": "1:239445121945:android:f1bf26fa931aabf43e9108",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "apsara-e8411",
+          "configurations": {
+            "android": "1:239445121945:android:f1bf26fa931aabf43e9108"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

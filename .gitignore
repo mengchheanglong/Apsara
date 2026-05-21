@@ -9,11 +9,13 @@ AGENTS.md
 .packages
 build/
 android/local.properties
-artkh_app/android/local.properties
+apsara_app/android/local.properties
 
 # Firebase / local environment
 .env
 .env.*
+!.env.example
+!apsara_app/.env.example
 firebase-debug.log
 firestore-debug.log
 ui-debug.log

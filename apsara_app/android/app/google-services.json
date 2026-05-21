@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "239445121945",
+    "project_id": "apsara-e8411",
+    "storage_bucket": "apsara-e8411.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:239445121945:android:f1bf26fa931aabf43e9108",
+        "android_client_info": {
+          "package_name": "com.apsara.apsara_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "239445121945-mmrfa2jb0gb82s28qlemouhankn22kos.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcoJkTZ5_-q-Bp2MeD1ha3c8ABOFl5u8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "239445121945-mmrfa2jb0gb82s28qlemouhankn22kos.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

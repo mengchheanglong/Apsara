@@ -1,10 +1,10 @@
-# ArtKh
+# Apsara
 
-ArtKh is a mobile application for discovering, sharing, saving, and buying authentic Khmer crafts and artworks. The app centers on a visual feed where users can browse handmade products, view detailed posts, save items into albums, publish their own art, and chat with sellers.
+Apsara is a mobile application for discovering, sharing, saving, and buying authentic Khmer crafts and artworks. The app centers on a visual feed where users can browse handmade products, view detailed posts, save items into albums, publish their own art, and chat with sellers.
 
 ## Project Goal
 
-Many Khmer handmade products are difficult to discover online because they are sold mainly in physical markets or scattered across informal channels. ArtKh gives artisans a simple platform to showcase and sell their work while giving buyers a polished way to explore authentic Cambodian crafts.
+Many Khmer handmade products are difficult to discover online because they are sold mainly in physical markets or scattered across informal channels. Apsara gives artisans a simple platform to showcase and sell their work while giving buyers a polished way to explore authentic Cambodian crafts.
 
 ## Target Users
 
@@ -19,12 +19,12 @@ Many Khmer handmade products are difficult to discover online because they are s
 - Backend: Firebase
 - Authentication: Firebase Authentication
 - Database: Cloud Firestore
-- Image storage: Firebase Storage
+- Image storage: Cloudinary
 - Optional: Push notifications
 
 ## Platform Focus
 
-ArtKh will be developed as an Android-first mobile app. Testing and verification should focus on Android emulator or Android device behavior before considering other platforms.
+Apsara will be developed as an Android-first mobile app. Testing and verification should focus on Android emulator or Android device behavior before considering other platforms.
 
 ## Core Features
 
