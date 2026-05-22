@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/user_profile.dart';
+import 'profile_service.dart';
+
 class AuthService {
   AuthService._();
 
@@ -11,17 +14,7 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   String displayNameFor(User user) {
-    final displayName = user.displayName?.trim();
-    if (displayName != null && displayName.isNotEmpty) {
-      return displayName;
-    }
-
-    final email = user.email?.trim();
-    if (email != null && email.isNotEmpty) {
-      return email.split('@').first;
-    }
-
-    return 'User';
+    return displayNameForUser(user);
   }
 
   bool requiresEmailVerification(User user) {
@@ -55,6 +48,10 @@ class AuthService {
     final user = credential.user;
     if (user != null) {
       await user.updateDisplayName(name.trim());
+      await ProfileService.instance.createInitialProfile(
+        user: user,
+        displayName: name.trim(),
+      );
       await user.sendEmailVerification();
       await user.reload();
     }

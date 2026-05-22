@@ -35,7 +35,8 @@ class FirebaseSetupScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   const Text(
                     'Authentication is wired into the app, but Firebase could not initialize for this build.',
-                    style: TextStyle(color: AppColors.textSecondary, height: 1.45),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, height: 1.45),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -54,7 +55,8 @@ class FirebaseSetupScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     Text(
                       'Init error: $error',
-                      style: const TextStyle(color: AppColors.primary, fontSize: 12),
+                      style: const TextStyle(
+                          color: AppColors.primary, fontSize: 12),
                     ),
                   ],
                 ],

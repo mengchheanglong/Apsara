@@ -28,7 +28,18 @@ class CloudinaryMediaService {
 
   bool get isConfigured => _cloudName.isNotEmpty && _uploadPreset.isNotEmpty;
 
-  Future<String> uploadPostImage(XFile image) async {
+  Future<String> uploadPostImage(XFile image) {
+    return _uploadImage(image, folder: _folder);
+  }
+
+  Future<String> uploadProfileImage(XFile image) {
+    return _uploadImage(image, folder: _folder);
+  }
+
+  Future<String> _uploadImage(
+    XFile image, {
+    required String folder,
+  }) async {
     if (!isConfigured) {
       throw const CloudinaryConfigException();
     }
@@ -37,7 +48,7 @@ class CloudinaryMediaService {
         Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
     final request = http.MultipartRequest('POST', uri)
       ..fields['upload_preset'] = _uploadPreset
-      ..fields['folder'] = _folder
+      ..fields['folder'] = folder
       ..files.add(await http.MultipartFile.fromPath('file', image.path));
 
     final response = await request.send();

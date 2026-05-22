@@ -59,5 +59,4 @@ class DefaultFirebaseOptions {
     projectId: 'apsara-e8411',
     storageBucket: 'apsara-e8411.firebasestorage.app',
   );
-
 }

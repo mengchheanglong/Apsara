@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/art_post.dart';
-import '../models/post_comment.dart';
 
 class PostService {
   PostService._();
@@ -19,46 +18,9 @@ class PostService {
         );
   }
 
-  Stream<Set<String>> watchSavedPostIds(String userId) {
-    return _db
-        .collection('users')
-        .doc(userId)
-        .collection('savedPosts')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
-  }
-
-  Stream<Set<String>> watchLikedPostIds(String userId) {
-    return _db
-        .collectionGroup('likes')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => _stringValue(doc.data()['postId']))
-          .whereType<String>()
-          .toSet();
-    });
-  }
-
-  Stream<List<PostComment>> watchComments(ArtPost post) {
-    return _db
-        .collection('posts')
-        .doc(post.storageId)
-        .collection('comments')
-        .orderBy('createdAt')
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((document) {
-        final data = document.data();
-        return PostComment(
-          id: document.id,
-          userId: _stringValue(data['userId']) ?? '',
-          userName: _stringValue(data['userName']) ?? 'Apsara user',
-          text: _stringValue(data['text']) ?? '',
-          timeLabel: _timeLabel(data['createdAt']),
-        );
-      }).toList();
+  Stream<List<ArtPost>> watchPostsBySeller(String sellerUid) {
+    return watchPosts().map((posts) {
+      return posts.where((post) => post.sellerUid == sellerUid).toList();
     });
   }
 
@@ -98,121 +60,22 @@ class PostService {
     return _fromDocument(snapshot);
   }
 
-  Future<void> deletePost(ArtPost post) async {
+  Future<void> deletePost({
+    required ArtPost post,
+    required String currentUserId,
+  }) async {
     final documentId = post.documentId;
     if (documentId == null || documentId.isEmpty) {
       return;
     }
 
-    await _db.collection('posts').doc(documentId).delete();
-  }
-
-  Future<void> setSaved({
-    required String userId,
-    required ArtPost post,
-    required bool saved,
-  }) async {
-    final savedRef = _db
+    await _db
         .collection('users')
-        .doc(userId)
+        .doc(currentUserId)
         .collection('savedPosts')
-        .doc(post.storageId);
-
-    if (!saved) {
-      await savedRef.delete();
-      return;
-    }
-
-    await savedRef.set({
-      'postId': post.storageId,
-      'title': post.title,
-      'imageUrl': post.imageUrl,
-      'sellerName': post.seller,
-      'category': post.category,
-      'savedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<void> setLiked({
-    required String userId,
-    required ArtPost post,
-    required bool liked,
-  }) async {
-    final postRef = _db.collection('posts').doc(post.storageId);
-    final likeRef = postRef.collection('likes').doc(userId);
-
-    await _db.runTransaction((transaction) async {
-      final likeSnapshot = await transaction.get(likeRef);
-      final postSnapshot = await transaction.get(postRef);
-      final currentCount = _intValue(postSnapshot.data()?['likeCount']);
-      final currentShareCount = _intValue(postSnapshot.data()?['shareCount']);
-
-      if (liked && !likeSnapshot.exists) {
-        transaction.set(likeRef, {
-          'userId': userId,
-          'postId': post.storageId,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        transaction.update(postRef, {
-          'likeCount': currentCount + 1,
-          'shareCount': currentShareCount,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else if (!liked && likeSnapshot.exists) {
-        transaction.delete(likeRef);
-        transaction.update(postRef, {
-          'likeCount': currentCount > 0 ? currentCount - 1 : 0,
-          'shareCount': currentShareCount,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    });
-  }
-
-  Future<void> addComment({
-    required String userId,
-    required String userName,
-    required ArtPost post,
-    required String text,
-  }) async {
-    final postRef = _db.collection('posts').doc(post.storageId);
-    final commentRef = postRef.collection('comments').doc();
-    final batch = _db.batch();
-
-    batch.set(commentRef, {
-      'userId': userId,
-      'userName': userName,
-      'text': text.trim(),
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    batch.update(postRef, {
-      'commentCount': FieldValue.increment(1),
-      'shareCount': FieldValue.increment(0),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
-  }
-
-  Future<void> recordShare({
-    required String userId,
-    required ArtPost post,
-  }) async {
-    final postRef = _db.collection('posts').doc(post.storageId);
-    final shareRef = postRef.collection('shares').doc();
-    final batch = _db.batch();
-
-    batch.set(shareRef, {
-      'userId': userId,
-      'postId': post.storageId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    batch.update(postRef, {
-      'shareCount': FieldValue.increment(1),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+        .doc(post.storageId)
+        .delete();
+    await _db.collection('posts').doc(documentId).delete();
   }
 
   ArtPost _fromDocument(DocumentSnapshot<Map<String, dynamic>> document) {
@@ -240,8 +103,7 @@ class PostService {
       imageUrl: imageUrls is List && imageUrls.isNotEmpty
           ? imageUrls.first.toString()
           : _stringValue(data['imageUrl']) ?? '',
-      description: _stringValue(data['description']) ??
-          'Shared with love from Cambodia.',
+      description: _stringValue(data['description']) ?? 'No description',
       price: _doubleValue(data['price']),
       likes: _intValue(data['likeCount']),
       comments: _intValue(data['commentCount']),
@@ -265,18 +127,5 @@ class PostService {
     if (value is int) return value.toDouble();
     if (value is double) return value;
     return double.tryParse(value.toString());
-  }
-
-  String _timeLabel(Object? value) {
-    if (value is! Timestamp) {
-      return 'Now';
-    }
-
-    final difference = DateTime.now().difference(value.toDate());
-    if (difference.inMinutes < 1) return 'Now';
-    if (difference.inHours < 1) return '${difference.inMinutes}m';
-    if (difference.inDays < 1) return '${difference.inHours}h';
-    if (difference.inDays < 7) return '${difference.inDays}d';
-    return '${value.toDate().month}/${value.toDate().day}';
   }
 }
