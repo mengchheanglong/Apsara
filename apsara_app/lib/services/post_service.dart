@@ -40,7 +40,7 @@ class PostService {
       'description': description,
       'category': category,
       'condition': condition,
-      'location': location,
+      'location': _normalizedLocation(location),
       'imageUrls': [imageUrl],
       'price': price,
       'currency': 'USD',
@@ -58,6 +58,36 @@ class PostService {
     final document = await _db.collection('posts').add(data);
     final snapshot = await document.get();
     return _fromDocument(snapshot);
+  }
+
+  Future<void> updatePost({
+    required ArtPost post,
+    required String title,
+    required String description,
+    required String category,
+    required String condition,
+    required String location,
+    required double? price,
+    required String imageUrl,
+  }) async {
+    final documentId = post.documentId;
+    if (documentId == null || documentId.isEmpty) {
+      return;
+    }
+
+    await _db.collection('posts').doc(documentId).update({
+      'title': title,
+      'description': description,
+      'category': category,
+      'condition': condition,
+      'location': _normalizedLocation(location),
+      'imageUrls': [imageUrl],
+      'imageUrl': imageUrl,
+      'price': price,
+      'currency': 'USD',
+      'isForSale': price != null && price > 0,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> deletePost({
@@ -99,7 +129,7 @@ class PostService {
       sellerUid: sellerUid,
       category: _stringValue(data['category']) ?? 'Others',
       condition: _stringValue(data['condition']) ?? 'Handmade',
-      location: _stringValue(data['location']) ?? 'Cambodia',
+      location: _normalizedLocation(_stringValue(data['location']) ?? ''),
       imageUrl: imageUrls is List && imageUrls.isNotEmpty
           ? imageUrls.first.toString()
           : _stringValue(data['imageUrl']) ?? '',
@@ -127,5 +157,16 @@ class PostService {
     if (value is int) return value.toDouble();
     if (value is double) return value;
     return double.tryParse(value.toString());
+  }
+
+  String _normalizedLocation(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return '';
+    }
+    if (normalized.toLowerCase() == 'cambodia') {
+      return '';
+    }
+    return normalized;
   }
 }

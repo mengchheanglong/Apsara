@@ -36,10 +36,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.surface,
         title: const Text('Comments'),
         centerTitle: true,
       ),

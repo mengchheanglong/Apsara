@@ -11,7 +11,10 @@ class TypingDots extends StatelessWidget {
       width: 46,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-          color: AppColors.soft, borderRadius: BorderRadius.circular(20)),
+        color: AppColors.chatIncoming,
+        border: Border.all(color: AppColors.chatIncomingBorder),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

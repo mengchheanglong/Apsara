@@ -108,7 +108,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 color: AppColors.textLight, size: 20),
                             SizedBox(width: 10),
                             Text(
-                              'Search art...',
+                              'Search posts or users...',
                               style: TextStyle(
                                 color: AppColors.textLight,
                                 fontSize: 14,

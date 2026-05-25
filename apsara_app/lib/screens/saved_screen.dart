@@ -21,6 +21,8 @@ class SavedScreen extends StatelessWidget {
     for (final post in posts) {
       grouped.putIfAbsent(post.category, () => []).add(post);
     }
+    final savedCountLabel =
+        '${posts.length} ${posts.length == 1 ? 'post' : 'posts'}';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
@@ -31,6 +33,15 @@ class SavedScreen extends StatelessWidget {
             color: AppColors.primary,
             fontSize: 17,
             fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          savedCountLabel,
+          style: const TextStyle(
+            color: AppColors.textLight,
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 24),

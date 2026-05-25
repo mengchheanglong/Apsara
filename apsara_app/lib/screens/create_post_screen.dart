@@ -247,9 +247,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           sellerUid: widget.sellerUid,
           category: _category,
           condition: _condition,
-          location: _location.text.trim().isEmpty
-              ? 'Cambodia'
-              : _location.text.trim(),
+          location: _location.text.trim(),
           imageUrl: imageUrl,
           description: _description.text.trim().isEmpty
               ? 'No description'

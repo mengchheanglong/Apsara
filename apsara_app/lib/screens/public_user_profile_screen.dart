@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/art_post.dart';
+import '../models/message_model.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/engagement_service.dart';
@@ -10,6 +11,7 @@ import '../services/saved_post_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_utils.dart';
 import '../widgets/post_grids.dart';
+import 'chat_screen.dart';
 import 'post_detail_screen.dart';
 
 class PublicUserProfileScreen extends StatelessWidget {
@@ -39,12 +41,23 @@ class PublicUserProfileScreen extends StatelessWidget {
         final avatarUrl = profile?.avatarUrl ?? fallbackAvatarUrl;
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: AppColors.surface,
             centerTitle: true,
             title: const Text('Profile'),
+            actions: [
+              IconButton(
+                onPressed: () => _openChat(
+                  context,
+                  displayName: displayName,
+                  email: profile?.email ?? '',
+                  avatarUrl: avatarUrl,
+                ),
+                icon: const Icon(Icons.mode_comment_outlined),
+              ),
+            ],
           ),
           body: SafeArea(
             child: ListView(
@@ -116,6 +129,40 @@ class PublicUserProfileScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _openChat(
+    BuildContext context, {
+    required String displayName,
+    required String email,
+    required String? avatarUrl,
+  }) async {
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    final currentProfile = await ProfileService.instance
+        .watchCurrentUserProfile(currentUser)
+        .first;
+    if (!context.mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChatScreen(
+          currentUser: currentUser,
+          currentProfile: currentProfile,
+          initialPeer: ChatPeer(
+            uid: userId,
+            displayName: displayName,
+            email: email,
+            avatarUrl: avatarUrl,
+          ),
+        ),
+      ),
     );
   }
 

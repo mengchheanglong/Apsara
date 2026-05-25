@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -29,15 +30,19 @@ class CloudinaryMediaService {
   bool get isConfigured => _cloudName.isNotEmpty && _uploadPreset.isNotEmpty;
 
   Future<String> uploadPostImage(XFile image) {
-    return _uploadImage(image, folder: _folder);
+    return _uploadImagePath(image.path, folder: _folder);
   }
 
   Future<String> uploadProfileImage(XFile image) {
-    return _uploadImage(image, folder: _folder);
+    return _uploadImagePath(image.path, folder: _folder);
   }
 
-  Future<String> _uploadImage(
-    XFile image, {
+  Future<String> uploadChatImage(File image) {
+    return _uploadImagePath(image.path, folder: _folder);
+  }
+
+  Future<String> _uploadImagePath(
+    String imagePath, {
     required String folder,
   }) async {
     if (!isConfigured) {
@@ -49,7 +54,7 @@ class CloudinaryMediaService {
     final request = http.MultipartRequest('POST', uri)
       ..fields['upload_preset'] = _uploadPreset
       ..fields['folder'] = folder
-      ..files.add(await http.MultipartFile.fromPath('file', image.path));
+      ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();

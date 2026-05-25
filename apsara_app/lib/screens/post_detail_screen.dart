@@ -25,6 +25,7 @@ class PostDetailSheet extends StatefulWidget {
     required this.onAddComment,
     required this.onSharePost,
     required this.onMessageSeller,
+    this.onEdit,
     this.onDelete,
   });
 
@@ -37,6 +38,7 @@ class PostDetailSheet extends StatefulWidget {
   final Future<void> Function(ArtPost post, String text) onAddComment;
   final Future<void> Function(ArtPost post) onSharePost;
   final VoidCallback onMessageSeller;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -44,6 +46,12 @@ class PostDetailSheet extends StatefulWidget {
 }
 
 class _PostDetailSheetState extends State<PostDetailSheet> {
+  static const _menuTextStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: AppColors.text,
+  );
+
   late bool _saved;
   late bool _liked;
   late int _likeCount;
@@ -91,7 +99,7 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       builder: (context, controller) {
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
           child: Stack(
@@ -152,26 +160,22 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                             ),
                             Text('$_shareCount'),
                             const Spacer(),
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_horiz),
-                              color: Colors.white,
-                              surfaceTintColor: Colors.white,
-                              onSelected: _handleMoreAction,
-                              itemBuilder: (context) => [
-                                PopupMenuItem<String>(
-                                  value: 'save_image',
-                                  enabled: !_isSavingImage,
-                                  child: Text(
-                                    _isSavingImage
-                                        ? 'Saving image...'
-                                        : 'Save image',
-                                  ),
+                            Theme(
+                              data: Theme.of(context).copyWith(
+                                dividerColor: AppColors.border,
+                                popupMenuTheme: const PopupMenuThemeData(
+                                  color: AppColors.surface,
+                                  surfaceTintColor: AppColors.surface,
+                                  textStyle: _menuTextStyle,
                                 ),
-                                const PopupMenuItem<String>(
-                                  value: 'copy_link',
-                                  child: Text('Copy image link'),
-                                ),
-                              ],
+                              ),
+                              child: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_horiz),
+                                color: AppColors.surface,
+                                surfaceTintColor: AppColors.surface,
+                                onSelected: _handleMoreAction,
+                                itemBuilder: _buildMoreActions,
+                              ),
                             ),
                           ],
                         ),
@@ -226,24 +230,29 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                           style: const TextStyle(
                               color: AppColors.textSecondary, height: 1.55),
                         ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'LOCATION',
+                          style: TextStyle(
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          post.location.trim().isEmpty
+                              ? 'No location'
+                              : post.location,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            height: 1.55,
+                          ),
+                        ),
                         const SizedBox(height: 22),
                         _SellerRow(
                           post: post,
-                          isOwnPost: widget.isOwnPost,
-                          onMessageSeller: widget.onMessageSeller,
                         ),
-                        if (!widget.isOwnPost) ...[
-                          const SizedBox(height: 18),
-                          const Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinePill(label: 'Is this still available?'),
-                              OutlinePill(label: "What's the lowest price?"),
-                              OutlinePill(label: "Where's pickup?"),
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -253,7 +262,7 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                 top: 12,
                 right: 12,
                 child: CircleAvatar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppColors.surface,
                   child: IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
@@ -267,7 +276,7 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     border: Border(top: BorderSide(color: AppColors.border)),
                   ),
                   child: Row(
@@ -283,9 +292,8 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                             overflow: TextOverflow.clip,
                           ),
                           style: FilledButton.styleFrom(
-                            backgroundColor: _saved
-                                ? const Color(0xFFE7E7E7)
-                                : const Color(0xFFF7F7F7),
+                            backgroundColor:
+                                _saved ? AppColors.soft : AppColors.surfaceWarm,
                             foregroundColor: _saved
                                 ? AppColors.textSecondary
                                 : AppColors.text,
@@ -301,7 +309,7 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                       Expanded(
                         flex: 2,
                         child: FilledButton(
-                          onPressed: widget.isOwnPost
+                          onPressed: widget.isOwnPost && widget.onDelete != null
                               ? _confirmDeletePost
                               : widget.onMessageSeller,
                           style: FilledButton.styleFrom(
@@ -310,9 +318,10 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                                 : AppColors.primary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: Text(widget.isOwnPost
-                              ? 'Delete post'
-                              : 'Message seller'),
+                          child: Text(
+                              widget.isOwnPost && widget.onDelete != null
+                                  ? 'Delete post'
+                                  : 'Message'),
                         ),
                       ),
                     ],
@@ -413,8 +422,8 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: AppColors.surface,
           title: const Text('Delete post?'),
           content: const Text(
             'This will remove the post from Apsara. This action cannot be undone.',
@@ -464,6 +473,12 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
 
   Future<void> _handleMoreAction(String action) async {
     switch (action) {
+      case 'edit_post':
+        widget.onEdit?.call();
+        break;
+      case 'delete_post':
+        await _confirmDeletePost();
+        break;
       case 'save_image':
         await _saveImageFromMenu();
         break;
@@ -474,6 +489,37 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
         }
         break;
     }
+  }
+
+  List<PopupMenuEntry<String>> _buildMoreActions(BuildContext context) {
+    return [
+      if (widget.isOwnPost &&
+          (widget.onEdit != null || widget.onDelete != null)) ...[
+        if (widget.onEdit != null)
+          const PopupMenuItem<String>(
+            value: 'edit_post',
+            child: Text('Edit post', style: _menuTextStyle),
+          ),
+        if (widget.onDelete != null)
+          const PopupMenuItem<String>(
+            value: 'delete_post',
+            child: Text('Delete post', style: _menuTextStyle),
+          ),
+        const PopupMenuDivider(height: 1),
+      ],
+      PopupMenuItem<String>(
+        value: 'save_image',
+        enabled: !_isSavingImage,
+        child: Text(
+          _isSavingImage ? 'Saving image...' : 'Save image',
+          style: _menuTextStyle,
+        ),
+      ),
+      const PopupMenuItem<String>(
+        value: 'copy_link',
+        child: Text('Copy image link', style: _menuTextStyle),
+      ),
+    ];
   }
 
   Future<void> _saveImageFromMenu() async {
@@ -585,13 +631,9 @@ String _postImageHeroTag(ArtPost post) {
 class _SellerRow extends StatelessWidget {
   const _SellerRow({
     required this.post,
-    required this.isOwnPost,
-    required this.onMessageSeller,
   });
 
   final ArtPost post;
-  final bool isOwnPost;
-  final VoidCallback onMessageSeller;
 
   @override
   Widget build(BuildContext context) {
@@ -644,20 +686,6 @@ class _SellerRow extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textLight,
-                ),
-                if (!isOwnPost) ...[
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: onMessageSeller,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.text,
-                    ),
-                    child: const Text('Message'),
-                  ),
-                ],
               ],
             ),
           ),

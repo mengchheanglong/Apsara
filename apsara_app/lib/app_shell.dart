@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'models/art_post.dart';
-import 'models/conversation.dart';
+import 'models/message_model.dart';
 import 'models/user_profile.dart';
 import 'screens/chat_screen.dart';
 import 'screens/create_post_screen.dart';
+import 'screens/edit_post_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/post_detail_screen.dart';
 import 'screens/profile_screen.dart';
@@ -40,7 +41,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
   Set<String> _savedPostIds = const {};
   Set<String> _likedPostIds = const {};
   late UserProfile _profile;
-  final List<Conversation> _conversations = [];
+  ChatPeer? _initialChatPeer;
   StreamSubscription<List<ArtPost>>? _postsSubscription;
   StreamSubscription<Set<String>>? _savedPostsSubscription;
   StreamSubscription<Set<String>>? _likedPostsSubscription;
@@ -119,8 +120,14 @@ class _ApsaraShellState extends State<ApsaraShell> {
         onOpenPost: _openPost,
       ),
       ChatScreen(
-        conversations: _conversations,
-        onSend: _sendMessage,
+        currentUser: widget.user,
+        currentProfile: _profile,
+        initialPeer: _initialChatPeer,
+        onInitialPeerConsumed: () {
+          if (mounted) {
+            setState(() => _initialChatPeer = null);
+          }
+        },
       ),
       ProfileScreen(
         profile: _profile,
@@ -142,8 +149,8 @@ class _ApsaraShellState extends State<ApsaraShell> {
       bottomNavigationBar: NavigationBar(
         height: 72,
         selectedIndex: _tab,
-        backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFEDEDED),
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.soft,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         onDestinationSelected: _selectTab,
         destinations: const [
@@ -200,8 +207,14 @@ class _ApsaraShellState extends State<ApsaraShell> {
           onSharePost: _sharePost,
           onMessageSeller: () {
             Navigator.pop(context);
-            _openConversation(post.sellerId, post.seller);
+            _openConversation(post);
           },
+          onEdit: _isOwnPost(post)
+              ? () {
+                  Navigator.pop(context);
+                  _openEditPost(post);
+                }
+              : null,
           onDelete: _isOwnPost(post)
               ? () {
                   Navigator.pop(context);
@@ -228,6 +241,61 @@ class _ApsaraShellState extends State<ApsaraShell> {
 
     setState(() {
       _tab = 0;
+    });
+  }
+
+  Future<void> _updatePost(
+    ArtPost post, {
+    required String title,
+    required String description,
+    required String category,
+    required String condition,
+    required String location,
+    required double? price,
+    required String imageUrl,
+  }) async {
+    final normalizedLocation =
+        location.trim().toLowerCase() == 'cambodia' ? '' : location.trim();
+
+    await PostService.instance.updatePost(
+      post: post,
+      title: title,
+      description: description,
+      category: category,
+      condition: condition,
+      location: normalizedLocation,
+      price: price,
+      imageUrl: imageUrl,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _posts = _posts.map((item) {
+        if (item.storageId != post.storageId) {
+          return item;
+        }
+
+        return ArtPost(
+          id: item.id,
+          documentId: item.documentId,
+          title: title,
+          seller: item.seller,
+          sellerId: item.sellerId,
+          sellerUid: item.sellerUid,
+          category: category,
+          condition: condition,
+          location: normalizedLocation,
+          imageUrl: imageUrl,
+          description: description,
+          price: price,
+          likes: item.likes,
+          comments: item.comments,
+          shares: item.shares,
+        );
+      }).toList();
     });
   }
 
@@ -332,34 +400,22 @@ class _ApsaraShellState extends State<ApsaraShell> {
     );
   }
 
-  void _openConversation(int sellerId, String sellerName) {
-    final existing =
-        _conversations.indexWhere((chat) => chat.sellerId == sellerId);
-    setState(() {
-      if (existing == -1) {
-        _conversations.insert(
-          0,
-          Conversation(
-            sellerId: sellerId,
-            sellerName: sellerName,
-            online: true,
-            messages: const [],
-          ),
-        );
-      }
-      _tab = 2;
-    });
-  }
-
-  void _sendMessage(Conversation conversation, String text) {
-    setState(() {
-      conversation.messages.add(
-        ChatMessage(
-          text: text,
-          time: 'Now',
-          isMe: true,
-        ),
+  void _openConversation(ArtPost post) {
+    final sellerUid = post.sellerUid;
+    if (sellerUid == null || sellerUid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seller chat is unavailable.')),
       );
+      return;
+    }
+
+    setState(() {
+      _initialChatPeer = ChatPeer(
+        uid: sellerUid,
+        displayName: post.seller,
+        email: '',
+      );
+      _tab = 2;
     });
   }
 
@@ -380,8 +436,8 @@ class _ApsaraShellState extends State<ApsaraShell> {
               backgroundColor: AppColors.surface,
               appBar: AppBar(
                 toolbarHeight: 52,
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.white,
+                backgroundColor: AppColors.surface,
+                surfaceTintColor: AppColors.surface,
                 elevation: 0,
                 centerTitle: false,
                 titleSpacing: 0,
@@ -405,6 +461,38 @@ class _ApsaraShellState extends State<ApsaraShell> {
           ).animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
           return SlideTransition(position: offsetAnimation, child: child);
+        },
+      ),
+    );
+  }
+
+  Future<void> _openEditPost(ArtPost post) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return EditPostScreen(
+            post: post,
+            onUpdatePost: ({
+              required title,
+              required description,
+              required category,
+              required condition,
+              required location,
+              required price,
+              required imageUrl,
+            }) {
+              return _updatePost(
+                post,
+                title: title,
+                description: description,
+                category: category,
+                condition: condition,
+                location: location,
+                price: price,
+                imageUrl: imageUrl,
+              );
+            },
+          );
         },
       ),
     );

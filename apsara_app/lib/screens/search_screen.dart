@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/art_post.dart';
+import '../models/user_profile.dart';
+import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/text_utils.dart';
 import '../widgets/post_grids.dart';
+import 'public_user_profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -37,6 +41,34 @@ class _SearchScreenState extends State<SearchScreen> {
   ];
   String _query = '';
 
+  List<_SearchUserMatch> get _userResults {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) {
+      return const <_SearchUserMatch>[];
+    }
+
+    final byUserId = <String, _SearchUserMatch>{};
+    for (final post in widget.posts) {
+      final sellerName = post.seller.trim();
+      final sellerUid = post.sellerUid?.trim();
+      if (sellerName.isEmpty ||
+          !sellerName.toLowerCase().contains(q) ||
+          sellerUid == null ||
+          sellerUid.isEmpty) {
+        continue;
+      }
+      byUserId.putIfAbsent(
+        sellerUid,
+        () => _SearchUserMatch(
+          userId: sellerUid,
+          fallbackName: sellerName,
+        ),
+      );
+    }
+    return byUserId.values.toList()
+      ..sort((a, b) => a.fallbackName.compareTo(b.fallbackName));
+  }
+
   List<ArtPost> get _results {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return const <ArtPost>[];
@@ -44,7 +76,8 @@ class _SearchScreenState extends State<SearchScreen> {
       return post.title.toLowerCase().contains(q) ||
           post.seller.toLowerCase().contains(q) ||
           post.category.toLowerCase().contains(q) ||
-          post.location.toLowerCase().contains(q);
+          post.location.toLowerCase().contains(q) ||
+          post.description.toLowerCase().contains(q);
     }).toList();
   }
 
@@ -66,7 +99,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -84,7 +117,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       focusNode: _focusNode,
                       onChanged: (value) => setState(() => _query = value),
                       decoration: InputDecoration(
-                        hintText: 'Search art...',
+                        hintText: 'Search posts or users...',
                         prefixIcon: const Icon(Icons.search,
                             color: AppColors.textLight),
                         suffixIcon: _query.isEmpty
@@ -165,12 +198,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildResultView() {
     final results = _results;
+    final users = _userResults;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
         const SizedBox(height: 4),
         Text(
-          '${results.length} results',
+          '${users.length + results.length} results',
           style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 12,
@@ -178,23 +212,43 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        if (results.isEmpty)
+        if (users.isEmpty && results.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 80),
             child: Center(
               child: Text(
-                'No matching posts found.',
+                'No matching posts or users found.',
                 style: TextStyle(color: AppColors.textLight),
               ),
             ),
           )
-        else
-          MasonryPostGrid(
-            posts: results,
-            onOpenPost: (post) {
-              widget.onOpenPost(post);
-            },
-          ),
+        else ...[
+          if (users.isNotEmpty) ...[
+            const Text(
+              'Users',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
+            for (final user in users)
+              _SearchUserTile(
+                match: user,
+              ),
+            const SizedBox(height: 22),
+          ],
+          if (results.isNotEmpty) ...[
+            const Text(
+              'Posts',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            MasonryPostGrid(
+              posts: results,
+              onOpenPost: (post) {
+                widget.onOpenPost(post);
+              },
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -205,5 +259,85 @@ class _SearchScreenState extends State<SearchScreen> {
       TextPosition(offset: term.length),
     );
     setState(() => _query = term);
+  }
+}
+
+class _SearchUserMatch {
+  const _SearchUserMatch({
+    required this.userId,
+    required this.fallbackName,
+  });
+
+  final String userId;
+  final String fallbackName;
+}
+
+class _SearchUserTile extends StatelessWidget {
+  const _SearchUserTile({
+    required this.match,
+  });
+
+  final _SearchUserMatch match;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<UserProfile?>(
+      stream: ProfileService.instance.watchUserProfileById(match.userId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        final displayName = profile?.displayName.trim().isNotEmpty == true
+            ? profile!.displayName
+            : match.fallbackName;
+        final avatarUrl = profile?.avatarUrl;
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PublicUserProfileScreen(
+                  userId: match.userId,
+                  fallbackName: displayName,
+                  fallbackAvatarUrl: avatarUrl,
+                ),
+              ),
+            );
+          },
+          leading: CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.secondary,
+            backgroundImage: avatarUrl == null || avatarUrl.isEmpty
+                ? null
+                : NetworkImage(avatarUrl),
+            child: avatarUrl == null || avatarUrl.isEmpty
+                ? Text(
+                    initialFor(displayName),
+                    style: const TextStyle(color: Colors.white),
+                  )
+                : null,
+          ),
+          title: Text(
+            displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: const Text(
+            'View profile',
+            style: TextStyle(
+              color: AppColors.textLight,
+              fontSize: 12,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: AppColors.textLight,
+          ),
+        );
+      },
+    );
   }
 }

@@ -12,6 +12,7 @@ import 'widgets/firebase_setup_screen.dart';
 class ApsaraApp extends StatelessWidget {
   const ApsaraApp({super.key});
 
+  // Initializes Firebase once at startup and reports either ready or failed state.
   Future<_FirebaseBootstrapState> _initializeFirebase() async {
     try {
       await Firebase.initializeApp(
@@ -24,6 +25,7 @@ class ApsaraApp extends StatelessWidget {
   }
 
   @override
+  // Routes the user into login, verification, or the main app based on auth state.
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Apsara',
@@ -88,6 +90,7 @@ class _AppLoadingScreen extends StatelessWidget {
   const _AppLoadingScreen();
 
   @override
+  // Shared blocking loader used while Firebase or auth state is still unresolved.
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(

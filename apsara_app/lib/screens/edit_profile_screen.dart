@@ -53,10 +53,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final avatarUrl = widget.profile.avatarUrl;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.surface,
         centerTitle: true,
         title: const Text('Edit profile'),
       ),

@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  // Keeps the form in a single screen by switching between register, login, and reset modes.
   Widget build(BuildContext context) {
     final subtitle = _isResetMode
         ? 'Enter your email to receive a password reset link'
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 : 'Log in';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -209,6 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Validates form input, then delegates either registration or login to AuthService.
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -257,6 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Sends a password-reset email and updates the inline success/error message.
   Future<void> _sendPasswordReset() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -296,6 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Converts FirebaseAuth error codes into short UI-friendly messages.
   String _firebaseErrorMessage(FirebaseAuthException error) {
     switch (error.code) {
       case 'email-already-in-use':
@@ -336,9 +340,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   String? _message;
 
   @override
+  // Lets the user confirm verification progress without leaving the app.
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -430,6 +435,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     );
   }
 
+  // Reloads the current Firebase user so emailVerified reflects the latest backend state.
   Future<void> _refreshVerificationStatus() async {
     setState(() {
       _isRefreshing = true;
@@ -454,6 +460,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     }
   }
 
+  // Requests another verification email for users who missed the first one.
   Future<void> _resendVerificationEmail() async {
     setState(() {
       _isSending = true;
