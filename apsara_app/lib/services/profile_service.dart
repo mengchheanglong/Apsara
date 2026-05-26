@@ -74,18 +74,27 @@ class ProfileService {
 
     final cleanName = displayName.trim();
     final cleanBio = bio.trim();
-    await user.updateDisplayName(cleanName);
-    if (avatarUrl != null) {
-      await user.updatePhotoURL(avatarUrl);
+    final normalizedAvatarUrl = avatarUrl?.trim();
+    final currentName = user.displayName?.trim() ?? '';
+    final currentAvatarUrl = user.photoURL?.trim() ?? '';
+
+    final authUpdates = <Future<void>>[];
+    if (cleanName != currentName) {
+      authUpdates.add(user.updateDisplayName(cleanName));
+    }
+    if (normalizedAvatarUrl != null && normalizedAvatarUrl != currentAvatarUrl) {
+      authUpdates.add(user.updatePhotoURL(normalizedAvatarUrl));
+    }
+    if (authUpdates.isNotEmpty) {
+      await Future.wait(authUpdates);
     }
 
     await _upsertUserProfile(
       user: user,
       displayName: cleanName,
       bio: cleanBio,
-      avatarUrl: avatarUrl ?? user.photoURL,
+      avatarUrl: normalizedAvatarUrl ?? user.photoURL,
     );
-    await user.reload();
   }
 
   Future<void> _upsertUserProfile({

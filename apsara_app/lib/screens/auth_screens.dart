@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
 import '../widgets/form_fields.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -245,10 +246,12 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on FirebaseAuthException catch (error) {
+      AppLogger.warn('Auth failed', error);
       if (mounted) {
         setState(() => _errorText = _firebaseErrorMessage(error));
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Auth failed', error, stackTrace);
       if (mounted) {
         setState(() => _errorText = 'Authentication failed. Try again.');
       }
@@ -285,10 +288,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _successText = 'Password reset email sent to $email.';
       });
     } on FirebaseAuthException catch (error) {
+      AppLogger.warn('Password reset failed', error);
       if (mounted) {
         setState(() => _errorText = _firebaseErrorMessage(error));
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Password reset failed', error, stackTrace);
       if (mounted) {
         setState(() => _errorText = 'Unable to send reset email.');
       }

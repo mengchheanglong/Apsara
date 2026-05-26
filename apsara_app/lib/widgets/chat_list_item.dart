@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/message_model.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import 'app_cached_media.dart';
 
 class ChatListItem extends StatelessWidget {
   const ChatListItem({
@@ -38,17 +38,11 @@ class ChatListItem extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(vertical: 7),
       onTap: onTap,
       onLongPress: onLongPress,
-      leading: CircleAvatar(
+      leading: AppAvatar(
+        displayName: visiblePeer.displayName,
+        imageUrl: visiblePeer.avatarUrl,
         radius: 24,
         backgroundColor: AppColors.chatAccent,
-        backgroundImage:
-            visiblePeer.avatarUrl == null || visiblePeer.avatarUrl!.isEmpty
-                ? null
-                : NetworkImage(visiblePeer.avatarUrl!),
-        child: visiblePeer.avatarUrl == null || visiblePeer.avatarUrl!.isEmpty
-            ? Text(initialFor(visiblePeer.displayName),
-                style: const TextStyle(color: Colors.white))
-            : null,
       ),
       title: Text(
         visiblePeer.displayName,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
@@ -8,7 +10,8 @@ import '../models/user_profile.dart';
 import '../services/engagement_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../utils/app_logger.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/pills.dart';
 import 'comments_screen.dart';
 import 'public_user_profile_screen.dart';
@@ -21,7 +24,7 @@ class PostDetailSheet extends StatefulWidget {
     required this.isLiked,
     required this.isOwnPost,
     required this.onSetSaved,
-    required this.onToggleLiked,
+    required this.onSetLiked,
     required this.onAddComment,
     required this.onSharePost,
     required this.onMessageSeller,
@@ -34,7 +37,7 @@ class PostDetailSheet extends StatefulWidget {
   final bool isLiked;
   final bool isOwnPost;
   final Future<void> Function(ArtPost post, bool saved) onSetSaved;
-  final Future<LikeUpdate> Function(ArtPost post) onToggleLiked;
+  final Future<LikeUpdate> Function(ArtPost post, bool liked) onSetLiked;
   final Future<void> Function(ArtPost post, String text) onAddComment;
   final Future<void> Function(ArtPost post) onSharePost;
   final VoidCallback onMessageSeller;
@@ -57,6 +60,11 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
   late int _likeCount;
   late int _commentCount;
   late int _shareCount;
+  late bool _confirmedSaved;
+  late bool _confirmedLiked;
+  late int _confirmedLikeCount;
+  bool? _queuedSavedTarget;
+  bool? _queuedLikedTarget;
   var _isSaving = false;
   var _isLiking = false;
   var _isSharing = false;
@@ -70,6 +78,9 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
     _likeCount = widget.post.likes;
     _commentCount = widget.post.comments;
     _shareCount = widget.post.shares;
+    _confirmedSaved = widget.isSaved;
+    _confirmedLiked = widget.isLiked;
+    _confirmedLikeCount = widget.post.likes;
   }
 
   @override
@@ -80,6 +91,31 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       _liked = widget.isLiked;
       _likeCount = widget.post.likes;
       _commentCount = widget.post.comments;
+      _shareCount = widget.post.shares;
+      _confirmedSaved = widget.isSaved;
+      _confirmedLiked = widget.isLiked;
+      _confirmedLikeCount = widget.post.likes;
+      _queuedSavedTarget = null;
+      _queuedLikedTarget = null;
+      return;
+    }
+
+    if (!_isSaving && widget.isSaved != _saved) {
+      _saved = widget.isSaved;
+      _confirmedSaved = widget.isSaved;
+    }
+    if (!_isLiking && widget.isLiked != _liked) {
+      _liked = widget.isLiked;
+      _confirmedLiked = widget.isLiked;
+    }
+    if (!_isLiking && widget.post.likes != _likeCount) {
+      _likeCount = widget.post.likes;
+      _confirmedLikeCount = widget.post.likes;
+    }
+    if (widget.post.comments != _commentCount) {
+      _commentCount = widget.post.comments;
+    }
+    if (!_isSharing && widget.post.shares != _shareCount) {
       _shareCount = widget.post.shares;
     }
   }
@@ -115,18 +151,17 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                       onTap: () => _openFullImage(context, post),
                       child: Hero(
                         tag: _postImageHeroTag(post),
-                        child: Image.network(
-                          post.imageUrl,
+                        child: AppCachedImage(
+                          imageUrl: post.imageUrl,
                           height: 430,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorChild: Container(
                             height: 430,
                             color: AppColors.soft,
                             alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.image_not_supported_outlined,
-                            ),
+                            child:
+                                const Icon(Icons.image_not_supported_outlined),
                           ),
                         ),
                       ),
@@ -336,64 +371,108 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
   }
 
   Future<void> _toggleSaved() async {
-    if (_isSaving) {
-      return;
-    }
-
     final nextSaved = !_saved;
     setState(() {
       _saved = nextSaved;
-      _isSaving = true;
+      _queuedSavedTarget = nextSaved;
     });
 
-    try {
-      await widget.onSetSaved(widget.post, nextSaved);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _saved = !nextSaved);
-        _showMessage('Unable to update saved post.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+    if (!_isSaving) {
+      unawaited(_flushSavedState());
     }
   }
 
   Future<void> _toggleLiked() async {
-    if (_isLiking) {
-      return;
-    }
-
-    final previousLiked = _liked;
-    final previousCount = _likeCount;
     final optimisticLiked = !_liked;
     setState(() {
       _liked = optimisticLiked;
       _likeCount += optimisticLiked ? 1 : -1;
       if (_likeCount < 0) _likeCount = 0;
-      _isLiking = true;
+      _queuedLikedTarget = optimisticLiked;
     });
 
-    try {
-      final update = await widget.onToggleLiked(widget.post);
-      if (mounted) {
+    if (!_isLiking) {
+      unawaited(_flushLikedState());
+    }
+  }
+
+  Future<void> _flushSavedState() async {
+    if (_isSaving) {
+      return;
+    }
+
+    while (mounted && _queuedSavedTarget != null) {
+      final target = _queuedSavedTarget!;
+      _queuedSavedTarget = null;
+
+      setState(() => _isSaving = true);
+
+      try {
+        await widget.onSetSaved(widget.post, target);
+        if (!mounted) {
+          return;
+        }
         setState(() {
-          _liked = update.isLiked;
-          _likeCount = update.likeCount;
+          _confirmedSaved = target;
+          _saved = _queuedSavedTarget ?? target;
         });
-      }
-    } catch (_) {
-      if (mounted) {
+      } catch (error, stackTrace) {
+        AppLogger.warn('Save toggle failed in post detail', error, stackTrace);
+        if (!mounted) {
+          return;
+        }
         setState(() {
-          _liked = previousLiked;
-          _likeCount = previousCount;
+          _saved = _confirmedSaved;
+          _queuedSavedTarget = null;
+        });
+        _showMessage('Unable to update saved post.');
+      } finally {
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
+      }
+    }
+  }
+
+  Future<void> _flushLikedState() async {
+    if (_isLiking) {
+      return;
+    }
+
+    while (mounted && _queuedLikedTarget != null) {
+      final target = _queuedLikedTarget!;
+      _queuedLikedTarget = null;
+
+      setState(() => _isLiking = true);
+
+      try {
+        final update = await widget.onSetLiked(widget.post, target);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _confirmedLiked = update.isLiked;
+          _confirmedLikeCount = update.likeCount;
+          if (_queuedLikedTarget == null) {
+            _liked = update.isLiked;
+            _likeCount = update.likeCount;
+          }
+        });
+      } catch (error, stackTrace) {
+        AppLogger.warn('Like toggle failed in post detail', error, stackTrace);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _liked = _confirmedLiked;
+          _likeCount = _confirmedLikeCount;
+          _queuedLikedTarget = null;
         });
         _showMessage('Unable to update like.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLiking = false);
+      } finally {
+        if (mounted) {
+          setState(() => _isLiking = false);
+        }
       }
     }
   }
@@ -406,7 +485,8 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       if (mounted) {
         setState(() => _shareCount += 1);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn('Share failed in post detail', error, stackTrace);
       if (mounted) {
         _showMessage('Unable to share this post.');
       }
@@ -527,6 +607,11 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       return;
     }
 
+    if (widget.post.imageUrl.trim().isEmpty) {
+      _showMessage('No image to save.');
+      return;
+    }
+
     setState(() => _isSavingImage = true);
 
     try {
@@ -550,7 +635,8 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       if (mounted) {
         _showMessage(error.type.message);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn('Save image failed in post detail', error, stackTrace);
       if (mounted) {
         _showMessage('Unable to save image.');
       }
@@ -605,11 +691,11 @@ class FullScreenPostImage extends StatelessWidget {
               maxScale: 4,
               child: Hero(
                 tag: _postImageHeroTag(post),
-                child: Image.network(
-                  post.imageUrl,
+                child: AppCachedImage(
+                  imageUrl: post.imageUrl,
                   width: double.infinity,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorChild: const Icon(
                     Icons.image_not_supported_outlined,
                     color: Colors.white70,
                     size: 42,
@@ -663,20 +749,10 @@ class _SellerRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                CircleAvatar(
+                AppAvatar(
+                  displayName: displayName,
+                  imageUrl: avatarUrl,
                   radius: 22,
-                  backgroundColor: AppColors.text,
-                  backgroundImage:
-                      avatarUrl == null ? null : NetworkImage(avatarUrl),
-                  child: avatarUrl == null
-                      ? Text(
-                          initialFor(displayName),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        )
-                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

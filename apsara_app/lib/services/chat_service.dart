@@ -256,7 +256,7 @@ class ChatService {
     required String userId,
   }) {
     return _roomRef(roomId).set({
-      'hiddenFor.$userId': DateTime.now(),
+      'hiddenFor.$userId': FieldValue.serverTimestamp(),
       'unreadCounts.$userId': 0,
       'typingUsers.$userId': false,
     }, SetOptions(merge: true));

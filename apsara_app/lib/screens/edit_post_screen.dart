@@ -7,6 +7,8 @@ import '../data/categories.dart';
 import '../models/art_post.dart';
 import '../services/cloudinary_media_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/form_fields.dart';
 
 class EditPostScreen extends StatefulWidget {
@@ -118,13 +120,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: _selectedImage == null
-                              ? Image.network(
-                                  widget.post.imageUrl,
+                              ? AppCachedImage(
+                                  imageUrl: widget.post.imageUrl,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Center(
+                                  errorChild: const Center(
                                     child: Icon(
-                                        Icons.image_not_supported_outlined),
+                                      Icons.image_not_supported_outlined,
+                                    ),
                                   ),
                                 )
                               : Image.file(
@@ -278,15 +281,18 @@ class _EditPostScreenState extends State<EditPostScreen> {
         Navigator.pop(context);
       }
     } on CloudinaryConfigException {
+      AppLogger.warn('Cloudinary config missing for post update');
       if (mounted) {
         setState(
             () => _formError = 'Cloudinary is not configured for this build.');
       }
     } on CloudinaryUploadException catch (error) {
+      AppLogger.warn('Post image upload failed', error);
       if (mounted) {
         setState(() => _formError = error.message);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Post update failed', error, stackTrace);
       if (mounted) {
         setState(() => _formError = 'Unable to update post. Try again.');
       }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../services/cloudinary_media_service.dart';
 import '../theme/app_theme.dart';
 
 typedef SendTextCallback = Future<void> Function(String text);
@@ -49,29 +50,51 @@ class MessageInputController extends ChangeNotifier {
   }
 }
 
-class MessageInput extends StatelessWidget {
+class MessageInput extends StatefulWidget {
   const MessageInput({
     super.key,
     required this.focusNode,
     required this.onSendText,
     required this.onSendImage,
     required this.onTypingChanged,
+    this.quickActions = const [],
   });
 
   final FocusNode focusNode;
   final SendTextCallback onSendText;
   final SendImageCallback onSendImage;
   final ValueChanged<bool> onTypingChanged;
+  final List<String> quickActions;
+
+  @override
+  State<MessageInput> createState() => _MessageInputState();
+}
+
+class _MessageInputState extends State<MessageInput> {
+  late final MessageInputController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MessageInputController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => MessageInputController(),
+    return ChangeNotifierProvider.value(
+      value: _controller,
       child: _MessageInputBody(
-        focusNode: focusNode,
-        onSendText: onSendText,
-        onSendImage: onSendImage,
-        onTypingChanged: onTypingChanged,
+        focusNode: widget.focusNode,
+        onSendText: widget.onSendText,
+        onSendImage: widget.onSendImage,
+        onTypingChanged: widget.onTypingChanged,
+        quickActions: widget.quickActions,
       ),
     );
   }
@@ -83,12 +106,14 @@ class _MessageInputBody extends StatefulWidget {
     required this.onSendText,
     required this.onSendImage,
     required this.onTypingChanged,
+    required this.quickActions,
   });
 
   final FocusNode focusNode;
   final SendTextCallback onSendText;
   final SendImageCallback onSendImage;
   final ValueChanged<bool> onTypingChanged;
+  final List<String> quickActions;
 
   @override
   State<_MessageInputBody> createState() => _MessageInputBodyState();
@@ -117,6 +142,26 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (widget.quickActions.isNotEmpty && !controller.isUploading) ...[
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: widget.quickActions.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final action = widget.quickActions[index];
+                    return ActionChip(
+                      label: Text(action),
+                      backgroundColor: AppColors.soft,
+                      side: BorderSide.none,
+                      onPressed: () => _sendPresetText(action),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (controller.isUploading) ...[
               LinearProgressIndicator(
                 value: controller.uploadProgress == 0
@@ -180,9 +225,22 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
       await widget.onSendText(text);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Message failed to send.')),
-        );
+        _showSnackBar('Message failed to send.');
+      }
+    }
+  }
+
+  Future<void> _sendPresetText(String text) async {
+    final controller = context.read<MessageInputController>();
+    if (controller.isUploading) {
+      return;
+    }
+    widget.onTypingChanged(false);
+    try {
+      await widget.onSendText(text);
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar('Message failed to send.');
       }
     }
   }
@@ -204,11 +262,17 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
         File(picked.path),
         controller.setUploadProgress,
       );
+    } on CloudinaryConfigException {
+      if (mounted) {
+        _showSnackBar('Cloudinary is not configured for this build.');
+      }
+    } on CloudinaryUploadException catch (error) {
+      if (mounted) {
+        _showSnackBar(error.message);
+      }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image failed to send.')),
-        );
+        _showSnackBar('Image failed to send.');
       }
     } finally {
       if (mounted) {
@@ -229,5 +293,11 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
         widget.onTypingChanged(false);
       });
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 }

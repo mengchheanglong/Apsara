@@ -20,7 +20,9 @@ import 'services/engagement_service.dart';
 import 'services/post_service.dart';
 import 'services/profile_service.dart';
 import 'services/saved_post_service.dart';
+import 'services/discovery_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/app_logger.dart';
 
 class ApsaraShell extends StatefulWidget {
   const ApsaraShell({
@@ -38,6 +40,8 @@ class _ApsaraShellState extends State<ApsaraShell> {
   final _homeKey = GlobalKey<HomeScreenState>();
   int _tab = 0;
   List<ArtPost> _posts = const [];
+  bool _isLoadingPosts = true;
+  Object? _postsError;
   Set<String> _savedPostIds = const {};
   Set<String> _likedPostIds = const {};
   late UserProfile _profile;
@@ -53,16 +57,17 @@ class _ApsaraShellState extends State<ApsaraShell> {
 
   List<ArtPost> get _myPosts => _posts.where(_isOwnPost).toList();
 
+  List<ArtPost> get _rankedPosts => DiscoveryService.rankPosts(
+        posts: _posts,
+        likedPostIds: _likedPostIds,
+        savedPostIds: _savedPostIds,
+      );
+
   @override
   void initState() {
     super.initState();
     _profile = UserProfile.fromUser(widget.user);
-    _postsSubscription = PostService.instance.watchPosts().listen((posts) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _posts = posts);
-    });
+    _watchPosts(showLoading: false);
     _savedPostsSubscription = SavedPostService.instance
         .watchSavedPostIds(widget.user.uid)
         .listen((ids) {
@@ -108,7 +113,10 @@ class _ApsaraShellState extends State<ApsaraShell> {
     final pages = [
       HomeScreen(
         key: _homeKey,
-        posts: _posts,
+        posts: _rankedPosts,
+        isLoading: _isLoadingPosts,
+        loadError: _postsError,
+        onRetry: _watchPosts,
         onOpenPost: _openPost,
         onOpenSearch: _openSearch,
         onOpenPostTools: _openPostTools,
@@ -190,7 +198,33 @@ class _ApsaraShellState extends State<ApsaraShell> {
     }
   }
 
-  void _openPost(ArtPost post) {
+  Future<void> _openPost(ArtPost post) async {
+    final postId = post.storageId;
+    var isSaved = _savedPostIds.contains(postId);
+    var isLiked = _likedPostIds.contains(postId);
+
+    try {
+      final results = await Future.wait([
+        EngagementService.instance.fetchLikedPostIdsForPosts(
+          userId: widget.user.uid,
+          posts: [post],
+        ),
+        SavedPostService.instance.isSaved(
+          userId: widget.user.uid,
+          postId: postId,
+        ),
+      ]);
+      final likedIds = results[0] as Set<String>;
+      isLiked = likedIds.contains(postId);
+      isSaved = results[1] as bool;
+    } catch (_) {
+      // Keep cached state on failure.
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -198,11 +232,11 @@ class _ApsaraShellState extends State<ApsaraShell> {
       builder: (context) {
         return PostDetailSheet(
           post: post,
-          isSaved: _savedPostIds.contains(post.storageId),
-          isLiked: _likedPostIds.contains(post.storageId),
+          isSaved: isSaved,
+          isLiked: isLiked,
           isOwnPost: _isOwnPost(post),
           onSetSaved: _setSaved,
-          onToggleLiked: _toggleLiked,
+          onSetLiked: _setLiked,
           onAddComment: _addComment,
           onSharePost: _sharePost,
           onMessageSeller: () {
@@ -227,17 +261,22 @@ class _ApsaraShellState extends State<ApsaraShell> {
   }
 
   Future<void> _createPost(ArtPost post) async {
-    await PostService.instance.createPost(
-      sellerUid: widget.user.uid,
-      sellerName: _currentUserName,
-      title: post.title,
-      description: post.description,
-      category: post.category,
-      condition: post.condition,
-      location: post.location,
-      price: post.price,
-      imageUrl: post.imageUrl,
-    );
+    try {
+      await PostService.instance.createPost(
+        sellerUid: widget.user.uid,
+        sellerName: _currentUserName,
+        title: post.title,
+        description: post.description,
+        category: post.category,
+        condition: post.condition,
+        location: post.location,
+        price: post.price,
+        imageUrl: post.imageUrl,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error('Post create failed', error, stackTrace);
+      rethrow;
+    }
 
     setState(() {
       _tab = 0;
@@ -257,16 +296,21 @@ class _ApsaraShellState extends State<ApsaraShell> {
     final normalizedLocation =
         location.trim().toLowerCase() == 'cambodia' ? '' : location.trim();
 
-    await PostService.instance.updatePost(
-      post: post,
-      title: title,
-      description: description,
-      category: category,
-      condition: condition,
-      location: normalizedLocation,
-      price: price,
-      imageUrl: imageUrl,
-    );
+    try {
+      await PostService.instance.updatePost(
+        post: post,
+        title: title,
+        description: description,
+        category: category,
+        condition: condition,
+        location: normalizedLocation,
+        price: price,
+        imageUrl: imageUrl,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error('Post update failed', error, stackTrace);
+      rethrow;
+    }
 
     if (!mounted) {
       return;
@@ -302,10 +346,15 @@ class _ApsaraShellState extends State<ApsaraShell> {
   Future<void> _deletePost(int id) async {
     final post = _posts.where((post) => post.id == id).firstOrNull;
     if (post != null) {
-      await PostService.instance.deletePost(
-        post: post,
-        currentUserId: widget.user.uid,
-      );
+      try {
+        await PostService.instance.deletePost(
+          post: post,
+          currentUserId: widget.user.uid,
+        );
+      } catch (error, stackTrace) {
+        AppLogger.error('Post delete failed', error, stackTrace);
+        rethrow;
+      }
     }
 
     setState(() {
@@ -330,7 +379,8 @@ class _ApsaraShellState extends State<ApsaraShell> {
         post: post,
         saved: saved,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn('Save toggle failed', error, stackTrace);
       if (mounted) {
         setState(() {
           _savedPostIds = saved
@@ -342,11 +392,18 @@ class _ApsaraShellState extends State<ApsaraShell> {
     }
   }
 
-  Future<LikeUpdate> _toggleLiked(ArtPost post) async {
-    final update = await EngagementService.instance.toggleLiked(
-      userId: widget.user.uid,
-      post: post,
-    );
+  Future<LikeUpdate> _setLiked(ArtPost post, bool liked) async {
+    LikeUpdate update;
+    try {
+      update = await EngagementService.instance.setLiked(
+        userId: widget.user.uid,
+        post: post,
+        liked: liked,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warn('Like toggle failed', error, stackTrace);
+      rethrow;
+    }
 
     if (mounted) {
       setState(() {
@@ -364,6 +421,53 @@ class _ApsaraShellState extends State<ApsaraShell> {
     }
 
     return update;
+  }
+
+  Future<void> _syncLikedPostsForVisiblePosts(List<ArtPost> posts) async {
+    final likedIds = await EngagementService.instance.fetchLikedPostIdsForPosts(
+      userId: widget.user.uid,
+      posts: posts,
+    );
+    if (!mounted || likedIds.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _likedPostIds = {..._likedPostIds, ...likedIds};
+    });
+  }
+
+  void _watchPosts({bool showLoading = true}) {
+    _postsSubscription?.cancel();
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoadingPosts = true;
+        _postsError = null;
+      });
+    } else {
+      _isLoadingPosts = true;
+      _postsError = null;
+    }
+
+    _postsSubscription = PostService.instance.watchPosts().listen((posts) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _posts = posts;
+        _isLoadingPosts = false;
+        _postsError = null;
+      });
+      unawaited(_syncLikedPostsForVisiblePosts(posts));
+    }, onError: (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoadingPosts = false;
+        _postsError = error;
+      });
+    });
   }
 
   Future<void> _updateProfile({
@@ -388,16 +492,21 @@ class _ApsaraShellState extends State<ApsaraShell> {
   }
 
   Future<void> _sharePost(ArtPost post) async {
-    await SharePlus.instance.share(
-      ShareParams(
-        text:
-            '${post.title}\n${post.priceLabel}\n${post.imageUrl}\n\nShared from Apsara',
-      ),
-    );
-    await EngagementService.instance.recordShare(
-      userId: widget.user.uid,
-      post: post,
-    );
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text:
+              '${post.title}\n${post.priceLabel}\n${post.imageUrl}\n\nShared from Apsara',
+        ),
+      );
+      await EngagementService.instance.recordShare(
+        userId: widget.user.uid,
+        post: post,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warn('Share failed', error, stackTrace);
+      rethrow;
+    }
   }
 
   void _openConversation(ArtPost post) {
@@ -503,7 +612,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
       MaterialPageRoute<void>(
         builder: (context) {
           return SearchScreen(
-            posts: _posts,
+            posts: _rankedPosts,
             onOpenPost: _openPost,
           );
         },

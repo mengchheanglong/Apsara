@@ -7,6 +7,7 @@ import '../data/categories.dart';
 import '../models/art_post.dart';
 import '../services/cloudinary_media_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
 import '../widgets/form_fields.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -264,15 +265,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         Navigator.of(context).maybePop();
       }
     } on CloudinaryConfigException {
+      AppLogger.warn('Cloudinary config missing for post upload');
       if (mounted) {
         setState(
             () => _formError = 'Cloudinary is not configured for this build.');
       }
     } on CloudinaryUploadException catch (error) {
+      AppLogger.warn('Post image upload failed', error);
       if (mounted) {
         setState(() => _formError = error.message);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Post create failed', error, stackTrace);
       if (mounted) {
         setState(() => _formError = 'Unable to publish listing. Try again.');
       }

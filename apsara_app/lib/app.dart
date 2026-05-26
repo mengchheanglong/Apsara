@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'screens/auth_screens.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/app_logger.dart';
 import 'widgets/firebase_setup_screen.dart';
 
 class ApsaraApp extends StatelessWidget {
@@ -19,7 +20,8 @@ class ApsaraApp extends StatelessWidget {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       return const _FirebaseBootstrapState.ready();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Firebase initialization failed', error, stackTrace);
       return _FirebaseBootstrapState.failed(error);
     }
   }

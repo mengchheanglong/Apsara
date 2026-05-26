@@ -6,7 +6,7 @@ import '../models/user_profile.dart';
 import '../services/engagement_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../widgets/app_cached_media.dart';
 import 'public_user_profile_screen.dart';
 
 class CommentsScreen extends StatefulWidget {
@@ -26,6 +26,7 @@ class CommentsScreen extends StatefulWidget {
 class _CommentsScreenState extends State<CommentsScreen> {
   final _controller = TextEditingController();
   var _isSubmitting = false;
+  var _isRetrying = false;
 
   @override
   void dispose() {
@@ -51,6 +52,18 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 stream: EngagementService.instance.watchComments(widget.post),
                 builder: (context, snapshot) {
                   final comments = snapshot.data ?? const <PostComment>[];
+                  if (snapshot.hasError && comments.isEmpty) {
+                    return _CommentsError(onRetry: _retryComments);
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      comments.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    );
+                  }
                   if (comments.isEmpty) {
                     return const Center(
                       child: Text(
@@ -142,6 +155,63 @@ class _CommentsScreenState extends State<CommentsScreen> {
       }
     }
   }
+
+  void _retryComments() {
+    if (_isRetrying) {
+      return;
+    }
+    setState(() => _isRetrying = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _isRetrying = false);
+      }
+    });
+  }
+}
+
+class _CommentsError extends StatelessWidget {
+  const _CommentsError({
+    required this.onRetry,
+  });
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.wifi_tethering_error_rounded,
+            color: AppColors.textLight,
+            size: 32,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Unable to load comments',
+            style: TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Check your connection and try again',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CommentRow extends StatelessWidget {
@@ -169,20 +239,12 @@ class _CommentRow extends StatelessWidget {
               onTap: comment.userId.isEmpty
                   ? null
                   : () => _openUserProfile(context, displayName, avatarUrl),
-              child: CircleAvatar(
+              child: AppAvatar(
+                displayName: displayName,
+                imageUrl: avatarUrl,
                 radius: 17,
                 backgroundColor: AppColors.soft,
-                backgroundImage:
-                    avatarUrl == null ? null : NetworkImage(avatarUrl),
-                child: avatarUrl == null
-                    ? Text(
-                        initialFor(displayName),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      )
-                    : null,
+                foregroundColor: AppColors.textSecondary,
               ),
             ),
             const SizedBox(width: 10),

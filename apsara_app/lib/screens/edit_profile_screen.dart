@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import '../models/user_profile.dart';
 import '../services/cloudinary_media_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../utils/app_logger.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/form_fields.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -68,25 +69,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  CircleAvatar(
-                    radius: 52,
-                    backgroundColor: AppColors.text,
-                    backgroundImage: _selectedImage != null
-                        ? FileImage(File(_selectedImage!.path))
-                        : avatarUrl == null
-                            ? null
-                            : NetworkImage(avatarUrl) as ImageProvider,
-                    child: _selectedImage == null && avatarUrl == null
-                        ? Text(
-                            initialFor(widget.profile.displayName),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          )
-                        : null,
-                  ),
+                  _selectedImage != null
+                      ? CircleAvatar(
+                          radius: 52,
+                          backgroundColor: AppColors.text,
+                          backgroundImage: FileImage(File(_selectedImage!.path)),
+                        )
+                      : AppAvatar(
+                          displayName: widget.profile.displayName,
+                          imageUrl: avatarUrl,
+                          radius: 52,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                        ),
                   Positioned(
                     right: -2,
                     bottom: -2,
@@ -162,6 +157,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final bio = _bio.text.trim();
+    if (_selectedImage == null &&
+        name == widget.profile.displayName.trim() &&
+        bio == widget.profile.bio.trim()) {
+      Navigator.pop(context);
+      return;
+    }
+
     setState(() {
       _isSaving = true;
       _errorText = null;
@@ -176,7 +179,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       await widget.onSave(
         displayName: name,
-        bio: _bio.text.trim(),
+        bio: bio,
         avatarUrl: avatarUrl,
       );
 
@@ -184,15 +187,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Navigator.pop(context);
       }
     } on CloudinaryConfigException {
+      AppLogger.warn('Cloudinary config missing for profile update');
       if (mounted) {
         setState(
             () => _errorText = 'Cloudinary is not configured for this build.');
       }
     } on CloudinaryUploadException catch (error) {
+      AppLogger.warn('Profile image upload failed', error);
       if (mounted) {
         setState(() => _errorText = error.message);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Profile update failed', error, stackTrace);
       if (mounted) {
         setState(() => _errorText = 'Unable to update profile.');
       }

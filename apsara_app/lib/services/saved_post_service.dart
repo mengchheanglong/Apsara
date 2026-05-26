@@ -17,6 +17,23 @@ class SavedPostService {
         .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
   }
 
+  Future<bool> isSaved({
+    required String userId,
+    required String postId,
+  }) async {
+    if (userId.trim().isEmpty || postId.trim().isEmpty) {
+      return false;
+    }
+
+    final snapshot = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('savedPosts')
+        .doc(postId)
+        .get();
+    return snapshot.exists;
+  }
+
   Future<void> setSaved({
     required String userId,
     required ArtPost post,

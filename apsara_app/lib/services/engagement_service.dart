@@ -21,15 +21,34 @@ class EngagementService {
 
   Stream<Set<String>> watchLikedPostIds(String userId) {
     return _db
-        .collectionGroup('likes')
-        .where('userId', isEqualTo: userId)
+        .collection('users')
+        .doc(userId)
+        .collection('likedPosts')
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => _stringValue(doc.data()['postId']))
-          .whereType<String>()
-          .toSet();
-    });
+        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
+  }
+
+  Future<Set<String>> fetchLikedPostIdsForPosts({
+    required String userId,
+    required List<ArtPost> posts,
+  }) async {
+    if (userId.isEmpty || posts.isEmpty) {
+      return const {};
+    }
+
+    final likedIds = <String>{};
+    await Future.wait(posts.map((post) async {
+      final snapshot = await _db
+          .collection('posts')
+          .doc(post.storageId)
+          .collection('likes')
+          .doc(userId)
+          .get();
+      if (snapshot.exists) {
+        likedIds.add(post.storageId);
+      }
+    }));
+    return likedIds;
   }
 
   Stream<List<PostComment>> watchComments(ArtPost post) {
@@ -53,39 +72,61 @@ class EngagementService {
     });
   }
 
-  Future<LikeUpdate> toggleLiked({
+  Future<LikeUpdate> setLiked({
     required String userId,
     required ArtPost post,
+    required bool liked,
   }) async {
     final postRef = _db.collection('posts').doc(post.storageId);
     final likeRef = postRef.collection('likes').doc(userId);
+    final userLikeRef = _db
+        .collection('users')
+        .doc(userId)
+        .collection('likedPosts')
+        .doc(post.storageId);
 
     return _db.runTransaction<LikeUpdate>((transaction) async {
       final likeSnapshot = await transaction.get(likeRef);
       final postSnapshot = await transaction.get(postRef);
       final currentCount = _intValue(postSnapshot.data()?['likeCount']);
 
-      if (likeSnapshot.exists) {
+      if (liked && likeSnapshot.exists) {
+        return LikeUpdate(isLiked: true, likeCount: currentCount);
+      }
+      if (!liked && !likeSnapshot.exists) {
+        return LikeUpdate(isLiked: false, likeCount: currentCount);
+      }
+
+      if (!liked) {
         final nextCount = currentCount > 0 ? currentCount - 1 : 0;
         transaction.delete(likeRef);
+        transaction.delete(userLikeRef);
         transaction.update(postRef, {
           'likeCount': nextCount,
           'updatedAt': FieldValue.serverTimestamp(),
         });
         return LikeUpdate(isLiked: false, likeCount: nextCount);
-      } else {
-        final nextCount = currentCount + 1;
-        transaction.set(likeRef, {
-          'userId': userId,
-          'postId': post.storageId,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        transaction.update(postRef, {
-          'likeCount': nextCount,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        return LikeUpdate(isLiked: true, likeCount: nextCount);
       }
+
+      final nextCount = currentCount + 1;
+      transaction.set(likeRef, {
+        'userId': userId,
+        'postId': post.storageId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(userLikeRef, {
+        'postId': post.storageId,
+        'title': post.title,
+        'imageUrl': post.imageUrl,
+        'sellerName': post.seller,
+        'category': post.category,
+        'likedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(postRef, {
+        'likeCount': nextCount,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return LikeUpdate(isLiked: true, likeCount: nextCount);
     });
   }
 

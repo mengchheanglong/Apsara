@@ -9,9 +9,9 @@ import '../services/post_service.dart';
 import '../services/profile_service.dart';
 import '../services/saved_post_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/post_grids.dart';
-import 'chat_screen.dart';
+import 'chat_room_view.dart';
 import 'post_detail_screen.dart';
 
 class PublicUserProfileScreen extends StatelessWidget {
@@ -64,21 +64,12 @@ class PublicUserProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
               children: [
                 Center(
-                  child: CircleAvatar(
+                  child: AppAvatar(
+                    displayName: displayName,
+                    imageUrl: avatarUrl,
                     radius: 43,
-                    backgroundColor: AppColors.text,
-                    backgroundImage:
-                        avatarUrl == null ? null : NetworkImage(avatarUrl),
-                    child: avatarUrl == null
-                        ? Text(
-                            initialFor(displayName),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          )
-                        : null,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -143,23 +134,40 @@ class PublicUserProfileScreen extends StatelessWidget {
       return;
     }
 
-    final currentProfile = await ProfileService.instance
-        .watchCurrentUserProfile(currentUser)
-        .first;
+    UserProfile currentProfile;
+    try {
+      currentProfile = await ProfileService.instance
+          .watchCurrentUserProfile(currentUser)
+          .first;
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to start chat.')),
+        );
+      }
+      return;
+    }
     if (!context.mounted) {
       return;
     }
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChatScreen(
-          currentUser: currentUser,
-          currentProfile: currentProfile,
-          initialPeer: ChatPeer(
-            uid: userId,
-            displayName: displayName,
-            email: email,
-            avatarUrl: avatarUrl,
+        builder: (_) => Scaffold(
+          backgroundColor: AppColors.surface,
+          body: SafeArea(
+            bottom: false,
+            child: ChatRoomView(
+              currentUser: currentUser,
+              currentProfile: currentProfile,
+              peer: ChatPeer(
+                uid: userId,
+                displayName: displayName,
+                email: email,
+                avatarUrl: avatarUrl,
+              ),
+              onBack: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
       ),
@@ -170,6 +178,19 @@ class PublicUserProfileScreen extends StatelessWidget {
     final user = AuthService.instance.currentUser;
     final userId = user?.uid ?? '';
     final isOwnPost = post.sellerUid == userId;
+    final likedIds = await EngagementService.instance.fetchLikedPostIdsForPosts(
+      userId: userId,
+      posts: [post],
+    );
+    final isSaved = userId.isEmpty
+        ? false
+        : await SavedPostService.instance.isSaved(
+            userId: userId,
+            postId: post.storageId,
+          );
+    if (!context.mounted) {
+      return;
+    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -178,8 +199,8 @@ class PublicUserProfileScreen extends StatelessWidget {
       builder: (context) {
         return PostDetailSheet(
           post: post,
-          isSaved: false,
-          isLiked: false,
+          isSaved: isSaved,
+          isLiked: likedIds.contains(post.storageId),
           isOwnPost: isOwnPost,
           onSetSaved: (post, saved) {
             return SavedPostService.instance.setSaved(
@@ -188,10 +209,11 @@ class PublicUserProfileScreen extends StatelessWidget {
               saved: saved,
             );
           },
-          onToggleLiked: (post) {
-            return EngagementService.instance.toggleLiked(
+          onSetLiked: (post, liked) {
+            return EngagementService.instance.setLiked(
               userId: userId,
               post: post,
+              liked: liked,
             );
           },
           onAddComment: (post, text) {

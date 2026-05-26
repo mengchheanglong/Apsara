@@ -56,9 +56,26 @@ class CloudinaryMediaService {
       ..fields['folder'] = folder
       ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
-    final response = await request.send();
+    http.StreamedResponse response;
+    try {
+      response = await request.send();
+    } on SocketException {
+      throw const CloudinaryUploadException('No network connection.');
+    } on HttpException {
+      throw const CloudinaryUploadException('Unable to reach Cloudinary.');
+    } catch (_) {
+      throw const CloudinaryUploadException('Image upload failed.');
+    }
+
     final responseBody = await response.stream.bytesToString();
-    final payload = jsonDecode(responseBody) as Map<String, dynamic>;
+    Map<String, dynamic> payload;
+    try {
+      payload = jsonDecode(responseBody) as Map<String, dynamic>;
+    } catch (_) {
+      throw const CloudinaryUploadException(
+        'Unexpected response from Cloudinary.',
+      );
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw CloudinaryUploadException(

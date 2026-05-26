@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/art_post.dart';
 import '../theme/app_theme.dart';
+import 'app_cached_media.dart';
 
 class MasonryPostGrid extends StatelessWidget {
   const MasonryPostGrid({
@@ -91,19 +92,17 @@ class PostCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
+          AppCachedImage(
+            imageUrl: post.imageUrl,
+            height: imageHeight,
+            width: double.infinity,
+            fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              post.imageUrl,
+            errorChild: Container(
               height: imageHeight,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: imageHeight,
-                color: AppColors.soft,
-                alignment: Alignment.center,
-                child: const Icon(Icons.image_not_supported_outlined),
-              ),
+              color: AppColors.soft,
+              alignment: Alignment.center,
+              child: const Icon(Icons.image_not_supported_outlined),
             ),
           ),
           const SizedBox(height: 7),
@@ -171,7 +170,10 @@ class AlbumGrid extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(post.imageUrl, fit: BoxFit.cover),
+                AppCachedImage(
+                  imageUrl: post.imageUrl,
+                  fit: BoxFit.cover,
+                ),
                 if (showOverflow)
                   Container(
                     color: Colors.black.withValues(alpha: 0.55),

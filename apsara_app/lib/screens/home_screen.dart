@@ -9,12 +9,18 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.posts,
+    required this.isLoading,
+    required this.loadError,
+    required this.onRetry,
     required this.onOpenPost,
     required this.onOpenSearch,
     required this.onOpenPostTools,
   });
 
   final List<ArtPost> posts;
+  final bool isLoading;
+  final Object? loadError;
+  final VoidCallback onRetry;
   final ValueChanged<ArtPost> onOpenPost;
   final Future<void> Function() onOpenSearch;
   final Future<void> Function() onOpenPostTools;
@@ -156,21 +162,54 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
-            sliver: posts.isEmpty
-                ? SliverToBoxAdapter(
-                    child: _HomeEmptyState(
-                      category: _category,
-                    ),
-                  )
-                : SliverToBoxAdapter(
-                    child: MasonryPostGrid(
-                      posts: posts,
-                      onOpenPost: widget.onOpenPost,
-                    ),
-                  ),
+            sliver: SliverToBoxAdapter(
+              child: _HomeBody(
+                posts: posts,
+                category: _category,
+                isLoading: widget.isLoading,
+                loadError: widget.loadError,
+                onRetry: widget.onRetry,
+                onOpenPost: widget.onOpenPost,
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HomeBody extends StatelessWidget {
+  const _HomeBody({
+    required this.posts,
+    required this.category,
+    required this.isLoading,
+    required this.loadError,
+    required this.onRetry,
+    required this.onOpenPost,
+  });
+
+  final List<ArtPost> posts;
+  final String category;
+  final bool isLoading;
+  final Object? loadError;
+  final VoidCallback onRetry;
+  final ValueChanged<ArtPost> onOpenPost;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && posts.isEmpty) {
+      return const _HomeLoadingState();
+    }
+    if (loadError != null && posts.isEmpty) {
+      return _HomeErrorState(onRetry: onRetry);
+    }
+    if (posts.isEmpty) {
+      return _HomeEmptyState(category: category);
+    }
+    return MasonryPostGrid(
+      posts: posts,
+      onOpenPost: onOpenPost,
     );
   }
 }
@@ -206,6 +245,94 @@ class _HomeEmptyState extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeLoadingState extends StatelessWidget {
+  const _HomeLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: MediaQuery.sizeOf(context).height * 0.48,
+      child: const Align(
+        alignment: Alignment(0, -0.18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: AppColors.primary,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Loading posts...',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeErrorState extends StatelessWidget {
+  const _HomeErrorState({
+    required this.onRetry,
+  });
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: MediaQuery.sizeOf(context).height * 0.48,
+      child: Align(
+        alignment: const Alignment(0, -0.18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.wifi_tethering_error_rounded,
+              color: AppColors.textLight,
+              size: 34,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Unable to load posts',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Check your connection and try again',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry'),
             ),
           ],
         ),

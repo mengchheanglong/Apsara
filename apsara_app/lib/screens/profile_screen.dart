@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/art_post.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/post_grids.dart';
 import 'edit_profile_screen.dart';
 
@@ -59,20 +59,12 @@ class ProfileScreen extends StatelessWidget {
         Center(
           child: Column(
             children: [
-              CircleAvatar(
+              AppAvatar(
+                displayName: profile.displayName,
+                imageUrl: avatarUrl,
                 radius: 43,
-                backgroundColor: AppColors.text,
-                backgroundImage:
-                    avatarUrl == null ? null : NetworkImage(avatarUrl),
-                child: avatarUrl == null
-                    ? Text(
-                        initialFor(profile.displayName),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900),
-                      )
-                    : null,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
               ),
               const SizedBox(height: 10),
               Stack(

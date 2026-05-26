@@ -4,7 +4,7 @@ import '../models/art_post.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/text_utils.dart';
+import '../widgets/app_cached_media.dart';
 import '../widgets/post_grids.dart';
 import 'public_user_profile_screen.dart';
 
@@ -42,7 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
 
   List<_SearchUserMatch> get _userResults {
-    final q = _query.trim().toLowerCase();
+    final q = _normalize(_query);
     if (q.isEmpty) {
       return const <_SearchUserMatch>[];
     }
@@ -52,7 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final sellerName = post.seller.trim();
       final sellerUid = post.sellerUid?.trim();
       if (sellerName.isEmpty ||
-          !sellerName.toLowerCase().contains(q) ||
+          !_normalize(sellerName).contains(q) ||
           sellerUid == null ||
           sellerUid.isEmpty) {
         continue;
@@ -70,14 +70,21 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   List<ArtPost> get _results {
-    final q = _query.trim().toLowerCase();
+    final q = _normalize(_query);
     if (q.isEmpty) return const <ArtPost>[];
+    final terms = q.split(RegExp(r'\s+')).where((term) => term.isNotEmpty);
     return widget.posts.where((post) {
-      return post.title.toLowerCase().contains(q) ||
-          post.seller.toLowerCase().contains(q) ||
-          post.category.toLowerCase().contains(q) ||
-          post.location.toLowerCase().contains(q) ||
-          post.description.toLowerCase().contains(q);
+      final fields = [
+        _normalize(post.title),
+        _normalize(post.seller),
+        _normalize(post.category),
+        _normalize(post.condition),
+        _normalize(post.location),
+        _normalize(post.description),
+      ];
+      return terms.every(
+        (term) => fields.any((field) => field.contains(term)),
+      );
     }).toList();
   }
 
@@ -260,6 +267,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
     setState(() => _query = term);
   }
+
+  String _normalize(String value) => value.trim().toLowerCase();
 }
 
 class _SearchUserMatch {
@@ -303,18 +312,11 @@ class _SearchUserTile extends StatelessWidget {
               ),
             );
           },
-          leading: CircleAvatar(
+          leading: AppAvatar(
+            displayName: displayName,
+            imageUrl: avatarUrl,
             radius: 22,
             backgroundColor: AppColors.secondary,
-            backgroundImage: avatarUrl == null || avatarUrl.isEmpty
-                ? null
-                : NetworkImage(avatarUrl),
-            child: avatarUrl == null || avatarUrl.isEmpty
-                ? Text(
-                    initialFor(displayName),
-                    style: const TextStyle(color: Colors.white),
-                  )
-                : null,
           ),
           title: Text(
             displayName,
