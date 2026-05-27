@@ -7,7 +7,7 @@ import '../widgets/app_cached_media.dart';
 import '../widgets/post_grids.dart';
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
     required this.profile,
@@ -28,9 +28,34 @@ class ProfileScreen extends StatelessWidget {
   final VoidCallback onLogout;
 
   @override
+  State<ProfileScreen> createState() => ProfileScreenState();
+}
+
+class ProfileScreenState extends State<ProfileScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void refreshCurrentTab() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final avatarUrl = profile.avatarUrl;
+    final avatarUrl = widget.profile.avatarUrl;
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
       children: [
         Stack(
@@ -60,7 +85,7 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             children: [
               AppAvatar(
-                displayName: profile.displayName,
+                displayName: widget.profile.displayName,
                 imageUrl: avatarUrl,
                 radius: 43,
                 fontSize: 28,
@@ -74,7 +99,7 @@ class ProfileScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 42),
                       child: Text(
-                        profile.displayName,
+                        widget.profile.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
@@ -105,7 +130,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                profile.bio.isEmpty ? 'No bio yet' : profile.bio,
+                widget.profile.bio.isEmpty ? 'No bio yet' : widget.profile.bio,
                 style: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
@@ -117,11 +142,15 @@ class ProfileScreen extends StatelessWidget {
         const Text('My Posts',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         const SizedBox(height: 10),
-        if (myPosts.isEmpty)
+        if (widget.myPosts.isEmpty)
           const Text('No posts yet.',
               style: TextStyle(color: AppColors.textLight))
         else
-          AlbumGrid(posts: myPosts, onOpenPost: onOpenPost),
+          AlbumGrid(
+            posts: widget.myPosts,
+            onOpenPost: widget.onOpenPost,
+            limitToSix: false,
+          ),
       ],
     );
   }
@@ -131,8 +160,8 @@ class ProfileScreen extends StatelessWidget {
       MaterialPageRoute<void>(
         builder: (context) {
           return EditProfileScreen(
-            profile: profile,
-            onSave: onUpdateProfile,
+            profile: widget.profile,
+            onSave: widget.onUpdateProfile,
           );
         },
       ),
@@ -182,7 +211,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    onLogout();
+                    widget.onLogout();
                   },
                 ),
               ],

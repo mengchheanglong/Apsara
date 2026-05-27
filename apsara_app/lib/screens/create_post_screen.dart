@@ -25,17 +25,17 @@ class CreatePostScreen extends StatefulWidget {
   final String sellerName;
 
   @override
-  State<CreatePostScreen> createState() => _CreatePostScreenState();
+  State<CreatePostScreen> createState() => CreatePostScreenState();
 }
 
-class _CreatePostScreenState extends State<CreatePostScreen> {
+class CreatePostScreenState extends State<CreatePostScreen> {
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _price = TextEditingController();
   final _location = TextEditingController();
   final _imagePicker = ImagePicker();
-  String _category = 'Pottery';
-  String _condition = 'New';
+  String _category = 'Others';
+  String _condition = 'Unknown';
   bool _isPublishing = false;
   String? _formError;
   XFile? _selectedImage;
@@ -49,185 +49,245 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
+  Future<void> submitPost() => _submit();
+
   @override
   Widget build(BuildContext context) {
+    final cardShadow = [
+      BoxShadow(
+        color: const Color(0xFF5B2F1E).withValues(alpha: 0.08),
+        blurRadius: 22,
+        offset: const Offset(0, 10),
+      ),
+    ];
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
-        const Text(
-          'Share your piece',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Add a photo and details.',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-            height: 1.35,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
+        _SectionLabel('Cover image'),
+        const SizedBox(height: 10),
+        DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.soft,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border, width: 1),
+            boxShadow: cardShadow,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Create listing',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              AspectRatio(
-                aspectRatio: 4 / 3,
-                child: InkWell(
-                  onTap: _isPublishing ? null : _pickImage,
-                  borderRadius: BorderRadius.circular(16),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border, width: 2),
-                    ),
-                    child: _selectedImage == null
-                        ? const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.photo_camera_outlined,
-                                color: AppColors.textLight,
-                                size: 34,
+          child: AspectRatio(
+            aspectRatio: 1.12,
+            child: InkWell(
+              onTap: _isPublishing ? null : _pickImage,
+              borderRadius: BorderRadius.circular(24),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: _selectedImage == null
+                      ? const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.photo_camera_outlined,
+                              color: AppColors.textLight,
+                              size: 34,
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              'Add cover photo',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                               ),
-                              SizedBox(height: 6),
-                              Text(
-                                'Add photo',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Image.file(
+                            ),
+                          ],
+                        )
+                      : Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.file(
                               File(_selectedImage!.path),
                               fit: BoxFit.cover,
                               width: double.infinity,
                             ),
-                          ),
-                  ),
+                            Positioned(
+                              right: 14,
+                              bottom: 14,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.42),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    'Replace',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
-              if (_selectedImage != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _isPublishing ? null : _pickImage,
-                    icon: const Icon(Icons.swap_horiz, size: 16),
-                    label: const Text('Change photo'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
-              LabeledField(
-                label: 'Title',
-                controller: _title,
-                hint: 'e.g., Hand-carved Wooden Elephant',
-              ),
-              const SizedBox(height: 10),
-              LabeledField(
-                label: 'Description',
-                controller: _description,
-                hint: 'Describe your item...',
-                maxLines: 4,
-              ),
-              const SizedBox(height: 10),
-              DropdownField(
-                label: 'Category',
-                value: _category,
-                values: categories.where((item) => item != 'All').toList(),
-                onChanged: (value) => setState(() => _category = value),
-              ),
-              const SizedBox(height: 10),
-              LabeledField(
-                label: 'Price',
-                controller: _price,
-                hint: '\$ 0.00',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 10),
-              DropdownField(
-                label: 'Condition',
-                value: _condition,
-                values: const ['New', 'Like new', 'Handmade', 'Vintage'],
-                onChanged: (value) => setState(() => _condition = value),
-              ),
-              const SizedBox(height: 10),
-              LabeledField(
-                label: 'Location',
-                controller: _location,
-                hint: 'City or Region',
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _isPublishing ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  child: Text(
-                    _isPublishing ? 'Posting...' : 'Post',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              if (_formError != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _formError!,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
+        const SizedBox(height: 22),
+        _SectionLabel('Post details'),
+        const SizedBox(height: 10),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: cardShadow,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final useTwoColumns = constraints.maxWidth >= 320;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LabeledField(
+                      label: 'Title',
+                      controller: _title,
+                    ),
+                    const SizedBox(height: 12),
+                    LabeledField(
+                      label: 'Description',
+                      controller: _description,
+                      maxLines: 5,
+                    ),
+                    const SizedBox(height: 12),
+                    if (useTwoColumns)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownField(
+                              label: 'Category',
+                              value: _category,
+                              values: categories
+                                  .where((item) => item != 'All')
+                                  .toList(),
+                              onChanged: (value) =>
+                                  setState(() => _category = value),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownField(
+                              label: 'Condition',
+                              value: _condition,
+                              values: const [
+                                'Unknown',
+                                'New',
+                                'Like new',
+                                'Handmade',
+                                'Vintage'
+                              ],
+                              onChanged: (value) =>
+                                  setState(() => _condition = value),
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      DropdownField(
+                        label: 'Category',
+                        value: _category,
+                        values:
+                            categories.where((item) => item != 'All').toList(),
+                        onChanged: (value) => setState(() => _category = value),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownField(
+                        label: 'Condition',
+                        value: _condition,
+                        values: const [
+                          'Unknown',
+                          'New',
+                          'Like new',
+                          'Handmade',
+                          'Vintage'
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _condition = value),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    LabeledField(
+                      label: 'Price',
+                      controller: _price,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      prefixText: '\$ ',
+                    ),
+                    const SizedBox(height: 12),
+                    LabeledField(
+                      label: 'Location',
+                      controller: _location,
+                      prefixIcon: Icons.place_outlined,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _isPublishing ? null : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              _isPublishing ? 'Posting...' : 'Post',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        if (_formError != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            _formError!,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ],
     );
   }
 
   Future<void> _submit() async {
     final title = _title.text.trim();
-    if (title.isEmpty) {
-      setState(() => _formError = 'Enter a title before publishing.');
-      return;
-    }
     if (_selectedImage == null) {
-      setState(() => _formError = 'Add a photo before publishing.');
+      setState(() => _formError = 'Add a cover photo before posting.');
       return;
     }
 
@@ -267,8 +327,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } on CloudinaryConfigException {
       AppLogger.warn('Cloudinary config missing for post upload');
       if (mounted) {
-        setState(
-            () => _formError = 'Cloudinary is not configured for this build.');
+        setState(() =>
+            _formError = 'Image upload is not configured for this build.');
       }
     } on CloudinaryUploadException catch (error) {
       AppLogger.warn('Post image upload failed', error);
@@ -278,7 +338,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } catch (error, stackTrace) {
       AppLogger.error('Post create failed', error, stackTrace);
       if (mounted) {
-        setState(() => _formError = 'Unable to publish listing. Try again.');
+        setState(() => _formError = 'Unable to post right now. Try again.');
       }
     } finally {
       if (mounted) {
@@ -301,5 +361,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _selectedImage = image;
       _formError = null;
     });
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.text,
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+      ),
+    );
   }
 }

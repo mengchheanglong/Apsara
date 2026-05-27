@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apsara Android Test Build</title>
+    <meta
+      name="description"
+      content="Download the latest Apsara Android test build."
+    >
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #fcf8f2;
+        --surface: #fffdf9;
+        --border: #eadfce;
+        --text: #221715;
+        --muted: #746860;
+        --brand: #8a1538;
+        --shadow: 0 20px 56px rgba(59, 30, 17, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: linear-gradient(180deg, #fffaf4 0%, #f6ede1 100%);
+        color: var(--text);
+        font-family: Arial, sans-serif;
+      }
+
+      .card {
+        width: min(420px, 100%);
+        padding: 28px 24px 24px;
+        border-radius: 28px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+
+      .logo {
+        width: 68px;
+        height: 68px;
+        display: block;
+        margin: 0 auto 16px;
+        object-fit: contain;
+      }
+
+      h1 {
+        margin: 0;
+        font: 700 28px/1.05 Georgia, "Times New Roman", serif;
+      }
+
+      p {
+        margin: 10px auto 0;
+        max-width: 28ch;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .qr-wrap {
+        margin: 24px auto 18px;
+        padding: 14px;
+        width: min(100%, 284px);
+        border-radius: 24px;
+        background: white;
+        border: 1px solid var(--border);
+      }
+
+      .qr {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 18px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: white;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .link {
+        display: block;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+        word-break: break-all;
+        text-decoration: none;
+      }
+
+      .link:hover {
+        color: var(--brand);
+      }
+
+      .note {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <img class="logo" src="apsara_logo.png" alt="Apsara logo">
+      <h1>Apsara</h1>
+      <p>Scan the QR code or use the button below to install the latest Android test build.</p>
+
+      <div class="qr-wrap">
+        <img
+          class="qr"
+          src="apsara-download-qr.png"
+          alt="QR code to download the Apsara APK"
+        >
+      </div>
+
+      <a class="button" id="download-link" href="apsara-test-0.1.1-2.apk" download>
+        Download APK
+      </a>
+
+      <a class="link" id="download-url" href="apsara-test-0.1.1-2.apk"></a>
+
+      <div class="note">
+        Android may ask you to allow installs from your browser or files app.
+      </div>
+    </main>
+
+    <script>
+      const downloadLink = document.getElementById("download-link");
+      const downloadUrl = document.getElementById("download-url");
+      const apkUrl = new URL("apsara-test-0.1.1-2.apk", window.location.href).href;
+
+      downloadLink.href = apkUrl;
+      downloadUrl.href = apkUrl;
+      downloadUrl.textContent = apkUrl;
+    </script>
+  </body>
+</html>

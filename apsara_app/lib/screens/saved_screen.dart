@@ -4,8 +4,9 @@ import '../models/art_post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/post_grids.dart';
+import 'saved_category_screen.dart';
 
-class SavedScreen extends StatelessWidget {
+class SavedScreen extends StatefulWidget {
   const SavedScreen({
     super.key,
     required this.posts,
@@ -16,15 +17,40 @@ class SavedScreen extends StatelessWidget {
   final ValueChanged<ArtPost> onOpenPost;
 
   @override
+  State<SavedScreen> createState() => SavedScreenState();
+}
+
+class SavedScreenState extends State<SavedScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void refreshCurrentTab() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final grouped = <String, List<ArtPost>>{};
-    for (final post in posts) {
+    for (final post in widget.posts) {
       grouped.putIfAbsent(post.category, () => []).add(post);
     }
     final savedCountLabel =
-        '${posts.length} ${posts.length == 1 ? 'post' : 'posts'}';
+        '${widget.posts.length} ${widget.posts.length == 1 ? 'post' : 'posts'}';
 
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
       children: [
         const Text(
@@ -45,7 +71,7 @@ class SavedScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        if (posts.isEmpty)
+        if (widget.posts.isEmpty)
           const EmptyState(
             icon: Icons.bookmark_border_rounded,
             title: 'Nothing saved yet',
@@ -62,10 +88,34 @@ class SavedScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            AlbumGrid(posts: entry.value, onOpenPost: onOpenPost),
+            AlbumGrid(
+              posts: entry.value,
+              onOpenPost: widget.onOpenPost,
+              onOverflowTap: () => _openCategory(
+                context,
+                category: entry.key,
+                posts: entry.value,
+              ),
+            ),
             const SizedBox(height: 22),
           ],
       ],
+    );
+  }
+
+  Future<void> _openCategory(
+    BuildContext context, {
+    required String category,
+    required List<ArtPost> posts,
+  }) {
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SavedCategoryScreen(
+          category: category,
+          posts: posts,
+          onOpenPost: widget.onOpenPost,
+        ),
+      ),
     );
   }
 }

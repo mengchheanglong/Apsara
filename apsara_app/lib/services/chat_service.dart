@@ -13,6 +13,7 @@ class ChatService {
 
   static final ChatService instance = ChatService._();
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final Map<String, ChatRoomCache> _roomCache = {};
 
   static const pageSize = 40;
 
@@ -76,6 +77,20 @@ class ChatService {
         .map((doc) => MessageModel.fromMap(doc.id, doc.data()))
         .toList();
     return messages.reversed.toList();
+  }
+
+  ChatRoomCache? cachedRoomState(String roomId) => _roomCache[roomId];
+
+  void cacheRoomState({
+    required String roomId,
+    required List<MessageModel> messages,
+    required bool hasMoreOlder,
+  }) {
+    _roomCache[roomId] = ChatRoomCache(
+      messages: List<MessageModel>.unmodifiable(messages),
+      hasMoreOlder: hasMoreOlder,
+      cachedAt: DateTime.now(),
+    );
   }
 
   Future<void> ensureRoom({
@@ -293,4 +308,16 @@ class ChatService {
     }
     return data;
   }
+}
+
+class ChatRoomCache {
+  const ChatRoomCache({
+    required this.messages,
+    required this.hasMoreOlder,
+    required this.cachedAt,
+  });
+
+  final List<MessageModel> messages;
+  final bool hasMoreOlder;
+  final DateTime cachedAt;
 }

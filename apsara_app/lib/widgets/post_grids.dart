@@ -9,10 +9,12 @@ class MasonryPostGrid extends StatelessWidget {
     super.key,
     required this.posts,
     required this.onOpenPost,
+    this.showMetadata = true,
   });
 
   final List<ArtPost> posts;
   final ValueChanged<ArtPost> onOpenPost;
+  final bool showMetadata;
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +35,22 @@ class MasonryPostGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-            child: _PostColumn(posts: left, onOpenPost: onOpenPost, offset: 0)),
+          child: _PostColumn(
+            posts: left,
+            onOpenPost: onOpenPost,
+            offset: 0,
+            showMetadata: showMetadata,
+          ),
+        ),
         const SizedBox(width: 10),
         Expanded(
-            child:
-                _PostColumn(posts: right, onOpenPost: onOpenPost, offset: 1)),
+          child: _PostColumn(
+            posts: right,
+            onOpenPost: onOpenPost,
+            offset: 1,
+            showMetadata: showMetadata,
+          ),
+        ),
       ],
     );
   }
@@ -48,11 +61,13 @@ class _PostColumn extends StatelessWidget {
     required this.posts,
     required this.onOpenPost,
     required this.offset,
+    required this.showMetadata,
   });
 
   final List<ArtPost> posts;
   final ValueChanged<ArtPost> onOpenPost;
   final int offset;
+  final bool showMetadata;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +80,7 @@ class _PostColumn extends StatelessWidget {
               post: posts[i],
               imageHeight: 172 + (((i + offset) % 3) * 42),
               onTap: () => onOpenPost(posts[i]),
+              showMetadata: showMetadata,
             ),
           ),
       ],
@@ -78,14 +94,20 @@ class PostCard extends StatelessWidget {
     required this.post,
     required this.imageHeight,
     required this.onTap,
+    this.showMetadata = true,
   });
 
   final ArtPost post;
   final double imageHeight;
   final VoidCallback onTap;
+  final bool showMetadata;
 
   @override
   Widget build(BuildContext context) {
+    final hasCaption = showMetadata &&
+        post.title.trim().isNotEmpty &&
+        post.title.trim() != 'Untitled craft';
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -105,32 +127,34 @@ class PostCard extends StatelessWidget {
               child: const Icon(Icons.image_not_supported_outlined),
             ),
           ),
-          const SizedBox(height: 7),
-          RichText(
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: const TextStyle(
-                color: AppColors.text,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.2,
-              ),
-              children: [
-                TextSpan(text: post.title),
-                if (post.isForSale) ...[
-                  const TextSpan(
-                    text: ' · ',
-                    style: TextStyle(color: AppColors.textLight),
-                  ),
-                  TextSpan(
-                    text: post.priceLabel,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+          if (hasCaption) ...[
+            const SizedBox(height: 7),
+            RichText(
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                ),
+                children: [
+                  TextSpan(text: post.title),
+                  if (post.isForSale) ...[
+                    const TextSpan(
+                      text: ' · ',
+                      style: TextStyle(color: AppColors.textLight),
+                    ),
+                    TextSpan(
+                      text: post.priceLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -142,14 +166,18 @@ class AlbumGrid extends StatelessWidget {
     super.key,
     required this.posts,
     required this.onOpenPost,
+    this.limitToSix = true,
+    this.onOverflowTap,
   });
 
   final List<ArtPost> posts;
   final ValueChanged<ArtPost> onOpenPost;
+  final bool limitToSix;
+  final VoidCallback? onOverflowTap;
 
   @override
   Widget build(BuildContext context) {
-    final visiblePosts = posts.take(6).toList();
+    final visiblePosts = limitToSix ? posts.take(6).toList() : posts;
     final overflow = posts.length - visiblePosts.length;
     return GridView.builder(
       shrinkWrap: true,
@@ -162,9 +190,15 @@ class AlbumGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final post = visiblePosts[index];
-        final showOverflow = index == 5 && overflow > 0;
+        final showOverflow = limitToSix && index == 5 && overflow > 0;
         return GestureDetector(
-          onTap: () => onOpenPost(post),
+          onTap: () {
+            if (showOverflow && onOverflowTap != null) {
+              onOverflowTap!();
+              return;
+            }
+            onOpenPost(post);
+          },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Stack(
@@ -181,7 +215,9 @@ class AlbumGrid extends StatelessWidget {
                     child: Text(
                       '+$overflow more',
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w900),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
               ],

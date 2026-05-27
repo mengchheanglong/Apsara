@@ -20,7 +20,7 @@ class UserProfile {
       uid: user.uid,
       displayName: displayNameForUser(user),
       email: user.email ?? '',
-      bio: 'Art lover & collector · Cambodia',
+      bio: 'No bio',
       avatarUrl: user.photoURL,
     );
   }

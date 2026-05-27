@@ -68,7 +68,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         : 'Others';
     _condition = _conditions.contains(widget.post.condition)
         ? widget.post.condition
-        : 'Handmade';
+        : 'Unknown';
   }
 
   @override
@@ -80,7 +80,13 @@ class _EditPostScreenState extends State<EditPostScreen> {
     super.dispose();
   }
 
-  static const _conditions = ['New', 'Like new', 'Handmade', 'Vintage'];
+  static const _conditions = [
+    'Unknown',
+    'New',
+    'Like new',
+    'Handmade',
+    'Vintage',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -95,17 +101,15 @@ class _EditPostScreenState extends State<EditPostScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
-            Container(
+            _SectionCard(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.soft,
-                borderRadius: BorderRadius.circular(16),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const _SectionHeading(title: 'Cover image'),
+                  const SizedBox(height: 10),
                   AspectRatio(
                     aspectRatio: 4 / 3,
                     child: InkWell(
@@ -145,7 +149,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                     child: TextButton.icon(
                       onPressed: _isSaving ? null : _pickImage,
                       icon: const Icon(Icons.swap_horiz, size: 16),
-                      label: const Text('Change photo'),
+                      label: const Text('Replace photo'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
                         textStyle: const TextStyle(
@@ -155,47 +159,80 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionHeading(title: 'Post details'),
+                  const SizedBox(height: 10),
                   LabeledField(
                     label: 'Title',
                     controller: _title,
-                    hint: 'Post title',
                   ),
                   const SizedBox(height: 10),
                   LabeledField(
                     label: 'Description',
                     controller: _description,
-                    hint: 'Describe your item...',
                     maxLines: 4,
                   ),
                   const SizedBox(height: 10),
-                  DropdownField(
-                    label: 'Category',
-                    value: _category,
-                    values: _postCategories,
-                    onChanged: (value) => setState(() => _category = value),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownField(
+                          label: 'Category',
+                          value: _category,
+                          values: _postCategories,
+                          onChanged: (value) =>
+                              setState(() => _category = value),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownField(
+                          label: 'Condition',
+                          value: _condition,
+                          values: _conditions,
+                          onChanged: (value) =>
+                              setState(() => _condition = value),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
-                  LabeledField(
-                    label: 'Price',
-                    controller: _price,
-                    hint: '\$ 0.00',
-                    keyboardType: TextInputType.number,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: LabeledField(
+                          label: 'Price',
+                          controller: _price,
+                          hint: 'Leave blank if not for sale',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: LabeledField(
+                          label: 'Location',
+                          controller: _location,
+                          hint: 'City or province',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  DropdownField(
-                    label: 'Condition',
-                    value: _condition,
-                    values: _conditions,
-                    onChanged: (value) => setState(() => _condition = value),
-                  ),
-                  const SizedBox(height: 10),
-                  LabeledField(
-                    label: 'Location',
-                    controller: _location,
-                    hint: 'City or Region',
-                  ),
-                  const SizedBox(height: 14),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -207,7 +244,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                           borderRadius: BorderRadius.circular(28),
                         ),
                       ),
-                      child: Text(_isSaving ? 'Saving...' : 'Save changes'),
+                      child: Text(_isSaving ? 'Saving...' : 'Save post'),
                     ),
                   ),
                   if (_formError != null) ...[
@@ -248,10 +285,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   Future<void> _save() async {
     final title = _title.text.trim();
-    if (title.isEmpty) {
-      setState(() => _formError = 'Enter a title.');
-      return;
-    }
 
     setState(() {
       _isSaving = true;
@@ -283,8 +316,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
     } on CloudinaryConfigException {
       AppLogger.warn('Cloudinary config missing for post update');
       if (mounted) {
-        setState(
-            () => _formError = 'Cloudinary is not configured for this build.');
+        setState(() =>
+            _formError = 'Image upload is not configured for this build.');
       }
     } on CloudinaryUploadException catch (error) {
       AppLogger.warn('Post image upload failed', error);
@@ -294,12 +327,53 @@ class _EditPostScreenState extends State<EditPostScreen> {
     } catch (error, stackTrace) {
       AppLogger.error('Post update failed', error, stackTrace);
       if (mounted) {
-        setState(() => _formError = 'Unable to update post. Try again.');
+        setState(() => _formError = 'Unable to save changes right now.');
       }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
       }
     }
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.soft,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.title,
+  });
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    );
   }
 }

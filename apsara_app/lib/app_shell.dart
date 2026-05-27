@@ -38,6 +38,9 @@ class ApsaraShell extends StatefulWidget {
 
 class _ApsaraShellState extends State<ApsaraShell> {
   final _homeKey = GlobalKey<HomeScreenState>();
+  final _savedKey = GlobalKey<SavedScreenState>();
+  final _chatKey = GlobalKey<ChatScreenState>();
+  final _profileKey = GlobalKey<ProfileScreenState>();
   int _tab = 0;
   List<ArtPost> _posts = const [];
   bool _isLoadingPosts = true;
@@ -122,12 +125,14 @@ class _ApsaraShellState extends State<ApsaraShell> {
         onOpenPostTools: _openPostTools,
       ),
       SavedScreen(
+        key: _savedKey,
         posts: _posts
             .where((post) => _savedPostIds.contains(post.storageId))
             .toList(),
         onOpenPost: _openPost,
       ),
       ChatScreen(
+        key: _chatKey,
         currentUser: widget.user,
         currentProfile: _profile,
         initialPeer: _initialChatPeer,
@@ -138,6 +143,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
         },
       ),
       ProfileScreen(
+        key: _profileKey,
         profile: _profile,
         myPosts: _myPosts,
         onOpenPost: _openPost,
@@ -189,12 +195,24 @@ class _ApsaraShellState extends State<ApsaraShell> {
   }
 
   void _selectTab(int index) {
-    setState(() => _tab = index);
+    if (index == _tab) {
+      _refreshCurrentTab();
+      return;
+    }
 
-    if (index == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    setState(() => _tab = index);
+  }
+
+  void _refreshCurrentTab() {
+    switch (_tab) {
+      case 0:
         _homeKey.currentState?.scrollCurrentCategoryToTop();
-      });
+      case 1:
+        _savedKey.currentState?.refreshCurrentTab();
+      case 2:
+        _chatKey.currentState?.refreshCurrentTab();
+      case 3:
+        _profileKey.currentState?.refreshCurrentTab();
     }
   }
 
@@ -549,7 +567,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
                 surfaceTintColor: AppColors.surface,
                 elevation: 0,
                 centerTitle: false,
-                titleSpacing: 0,
+                title: const Text('New post'),
               ),
               body: SafeArea(
                 top: false,

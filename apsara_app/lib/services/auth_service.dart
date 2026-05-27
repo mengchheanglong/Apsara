@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user_profile.dart';
 import 'profile_service.dart';
@@ -8,6 +9,7 @@ class AuthService {
 
   static final AuthService instance = AuthService._();
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   // Broadcasts login/logout changes so the app can switch screens reactively.
   Stream<User?> userChanges() => _auth.userChanges();
@@ -38,6 +40,35 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      await _googleSignIn.initialize();
+      final googleUser = await _googleSignIn.authenticate();
+      final googleAuth = googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user != null) {
+        await ProfileService.instance.ensureProfileExists(user);
+      }
+    } on GoogleSignInException catch (error) {
+      final code = switch (error.code) {
+        GoogleSignInExceptionCode.canceled => 'sign_in_canceled',
+        GoogleSignInExceptionCode.clientConfigurationError =>
+          'google_sign_in_not_configured',
+        _ => 'google_sign_in_failed',
+      };
+
+      throw FirebaseAuthException(
+        code: code,
+        message: error.description,
+      );
+    }
   }
 
   // Creates the auth account, stores the initial profile, then triggers verification.
@@ -86,6 +117,7 @@ class AuthService {
 
   // Ends the Firebase session; app.dart reacts through the auth stream.
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 }

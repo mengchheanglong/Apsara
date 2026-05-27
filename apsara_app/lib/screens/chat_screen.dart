@@ -27,12 +27,14 @@ class ChatScreen extends StatefulWidget {
   final VoidCallback? onInitialPeerConsumed;
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> {
   ChatPeer? _activePeer;
+  final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  final Map<String, ChatPeer> _cachedPeersByRoomId = {};
   StreamSubscription<List<ChatRoomPreview>>? _roomsSubscription;
   List<ChatRoomPreview> _rooms = const [];
   bool _isLoadingRooms = true;
@@ -59,9 +61,31 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     _roomsSubscription?.cancel();
     super.dispose();
+  }
+
+  void refreshCurrentTab() {
+    if (_activePeer != null) {
+      setState(() => _activePeer = null);
+      return;
+    }
+
+    if (_query.isNotEmpty || _searchController.text.isNotEmpty) {
+      _searchController.clear();
+      setState(() => _query = '');
+    }
+
+    _watchRooms();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   void _watchRooms() {
@@ -81,6 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _isLoadingRooms = false;
         _roomsError = null;
       });
+      unawaited(_hydratePeers(rooms));
     }, onError: (error) {
       if (!mounted) {
         return;
@@ -89,6 +114,37 @@ class _ChatScreenState extends State<ChatScreen> {
         _roomsError = error;
         _isLoadingRooms = false;
       });
+    });
+  }
+
+  Future<void> _hydratePeers(List<ChatRoomPreview> rooms) async {
+    final peerIds = rooms
+        .map((room) => room.otherParticipant(widget.currentUser.uid).uid)
+        .where((id) => id.isNotEmpty && id != widget.currentUser.uid)
+        .toSet();
+    if (peerIds.isEmpty) {
+      return;
+    }
+
+    final profiles = await ProfileService.instance.fetchProfilesByIds(peerIds);
+    if (!mounted || profiles.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      for (final room in rooms) {
+        final fallbackPeer = room.otherParticipant(widget.currentUser.uid);
+        final profile = profiles[fallbackPeer.uid];
+        if (profile == null) {
+          continue;
+        }
+        _cachedPeersByRoomId[room.id] = ChatPeer(
+          uid: profile.uid,
+          displayName: profile.displayName,
+          email: profile.email,
+          avatarUrl: profile.avatarUrl,
+        );
+      }
     });
   }
 
@@ -121,6 +177,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onBack: () => setState(() => _activePeer = null),
             )
           : ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
               children: [
                 const Text(
@@ -181,6 +238,22 @@ class _ChatScreenState extends State<ChatScreen> {
               _ProfileAwareChatListItem(
                 room: room,
                 currentUserId: widget.currentUser.uid,
+                cachedPeer: _cachedPeersByRoomId[room.id],
+                onPeerResolved: (peer) {
+                  if (!mounted) {
+                    return;
+                  }
+                  final existing = _cachedPeersByRoomId[room.id];
+                  if (existing?.displayName == peer.displayName &&
+                      existing?.avatarUrl == peer.avatarUrl &&
+                      existing?.email == peer.email &&
+                      existing?.uid == peer.uid) {
+                    return;
+                  }
+                  setState(() {
+                    _cachedPeersByRoomId[room.id] = peer;
+                  });
+                },
                 onOpen: (peer) => setState(() => _activePeer = peer),
                 onDelete: (peer) => _confirmDeleteChat(room, peer),
               ),
@@ -303,7 +376,8 @@ class _ChatScreenState extends State<ChatScreen> {
       return _rooms;
     }
     final visibleRooms = _rooms.where((room) {
-      final peer = room.otherParticipant(widget.currentUser.uid);
+      final peer = _cachedPeersByRoomId[room.id] ??
+          room.otherParticipant(widget.currentUser.uid);
       final peerName = peer.displayName.toLowerCase();
       final nameEntries = room.participantIds.length == 1
           ? room.participantNames.entries
@@ -354,12 +428,16 @@ class _ProfileAwareChatListItem extends StatelessWidget {
   const _ProfileAwareChatListItem({
     required this.room,
     required this.currentUserId,
+    required this.cachedPeer,
+    required this.onPeerResolved,
     required this.onOpen,
     required this.onDelete,
   });
 
   final ChatRoomPreview room;
   final String currentUserId;
+  final ChatPeer? cachedPeer;
+  final ValueChanged<ChatPeer> onPeerResolved;
   final ValueChanged<ChatPeer> onOpen;
   final ValueChanged<ChatPeer> onDelete;
 
@@ -379,25 +457,26 @@ class _ProfileAwareChatListItem extends StatelessWidget {
       builder: (context, snapshot) {
         final profile = snapshot.data;
         final peer = profile == null
-            ? fallbackPeer
+            ? (cachedPeer ?? fallbackPeer)
             : ChatPeer(
                 uid: profile.uid,
                 displayName: profile.displayName,
                 email: profile.email,
                 avatarUrl: profile.avatarUrl,
               );
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeOutCubic,
-          child: ChatListItem(
-            key: ValueKey('${room.id}_${peer.displayName}_${peer.avatarUrl}'),
-            room: room,
-            currentUserId: currentUserId,
-            peer: peer,
-            onTap: () => onOpen(peer),
-            onLongPress: () => onDelete(peer),
-          ),
+
+        if (profile != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            onPeerResolved(peer);
+          });
+        }
+
+        return ChatListItem(
+          room: room,
+          currentUserId: currentUserId,
+          peer: peer,
+          onTap: () => onOpen(peer),
+          onLongPress: () => onDelete(peer),
         );
       },
     );
@@ -409,55 +488,7 @@ class _ChatListLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.55, end: 1),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeInOut,
-      builder: (context, opacity, child) {
-        return Opacity(opacity: opacity, child: child);
-      },
-      child: Column(
-        children: [
-          const _SoftLoadingLine(),
-          const SizedBox(height: 18),
-          const Text(
-            'Loading messages',
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ...List.generate(
-            4,
-            (index) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  const _SkeletonCircle(),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SkeletonBar(
-                          widthFactor: index.isEven ? 0.46 : 0.34,
-                        ),
-                        const SizedBox(height: 9),
-                        _SkeletonBar(
-                          widthFactor: index.isEven ? 0.72 : 0.58,
-                          height: 9,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox(height: 220);
   }
 }
 
@@ -478,43 +509,6 @@ class _SoftLoadingLine extends StatelessWidget {
         height: 3,
         decoration: BoxDecoration(
           color: AppColors.chatOutgoingSoft,
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
-    );
-  }
-}
-
-class _SkeletonCircle extends StatelessWidget {
-  const _SkeletonCircle();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CircleAvatar(
-      radius: 24,
-      backgroundColor: AppColors.chatIncoming,
-    );
-  }
-}
-
-class _SkeletonBar extends StatelessWidget {
-  const _SkeletonBar({
-    required this.widthFactor,
-    this.height = 11,
-  });
-
-  final double widthFactor;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      widthFactor: widthFactor,
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: AppColors.chatIncoming,
           borderRadius: BorderRadius.circular(999),
         ),
       ),

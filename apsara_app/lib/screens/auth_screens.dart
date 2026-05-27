@@ -158,48 +158,61 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(primaryActionText,
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ),
+                  if (!_isResetMode) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      onPressed: _isSubmitting ? null : _signInWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        side: const BorderSide(color: AppColors.border),
+                      ),
+                      child: const Text(
+                        'Continue with Google',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 18),
-                  TextButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () {
-                            setState(() {
-                              if (_isResetMode) {
-                                _isResetMode = false;
-                                _isRegisterMode = false;
-                              } else {
-                                _isRegisterMode = !_isRegisterMode;
-                              }
-                              _errorText = null;
-                              _successText = null;
-                            });
-                          },
-                    child: Text.rich(
-                      TextSpan(
-                        text: _isResetMode
-                            ? ''
-                            : _isRegisterMode
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (!_isResetMode)
+                          Text(
+                            _isRegisterMode
                                 ? 'Already have an account? '
                                 : 'Need an account? ',
-                        children: [
-                          TextSpan(
-                            text: _isResetMode
-                                ? 'Back to log in'
-                                : _isRegisterMode
-                                    ? 'Log in'
-                                    : 'Create one',
                             style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
+                              color: AppColors.textLight,
+                              fontSize: 12,
                             ),
                           ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 12,
-                      ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _isSubmitting ? null : _switchAuthMode,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              _isResetMode
+                                  ? 'Back to log in'
+                                  : _isRegisterMode
+                                      ? 'Log in'
+                                      : 'Create one',
+                              style: TextStyle(
+                                color: _isSubmitting
+                                    ? AppColors.textLight
+                                    : AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -209,6 +222,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void _switchAuthMode() {
+    setState(() {
+      if (_isResetMode) {
+        _isResetMode = false;
+        _isRegisterMode = false;
+      } else {
+        _isRegisterMode = !_isRegisterMode;
+      }
+      _errorText = null;
+      _successText = null;
+    });
   }
 
   // Validates form input, then delegates either registration or login to AuthService.
@@ -254,6 +280,38 @@ class _LoginScreenState extends State<LoginScreen> {
       AppLogger.error('Auth failed', error, stackTrace);
       if (mounted) {
         setState(() => _errorText = 'Authentication failed. Try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  // Starts the native Google account picker, then signs into Firebase with the returned Google token.
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _successText = null;
+    });
+
+    try {
+      await AuthService.instance.signInWithGoogle();
+    } on FirebaseAuthException catch (error) {
+      AppLogger.warn('Google auth failed', error);
+      if (!mounted) {
+        return;
+      }
+      if (error.code == 'sign_in_canceled') {
+        setState(() => _errorText = null);
+      } else {
+        setState(() => _errorText = _firebaseErrorMessage(error));
+      }
+    } catch (error, stackTrace) {
+      AppLogger.error('Google auth failed', error, stackTrace);
+      if (mounted) {
+        setState(() => _errorText = 'Google sign-in failed. Try again.');
       }
     } finally {
       if (mounted) {
@@ -321,6 +379,12 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Too many attempts. Try again later.';
       case 'user-disabled':
         return 'This account has been disabled.';
+      case 'sign_in_canceled':
+        return 'Google sign-in was canceled.';
+      case 'google_sign_in_not_configured':
+        return 'Google sign-in is not fully configured.';
+      case 'google_sign_in_failed':
+        return 'Google sign-in failed. Try again.';
       default:
         return error.message ?? 'Authentication failed.';
     }

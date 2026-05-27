@@ -41,34 +41,6 @@ class _SearchScreenState extends State<SearchScreen> {
   ];
   String _query = '';
 
-  List<_SearchUserMatch> get _userResults {
-    final q = _normalize(_query);
-    if (q.isEmpty) {
-      return const <_SearchUserMatch>[];
-    }
-
-    final byUserId = <String, _SearchUserMatch>{};
-    for (final post in widget.posts) {
-      final sellerName = post.seller.trim();
-      final sellerUid = post.sellerUid?.trim();
-      if (sellerName.isEmpty ||
-          !_normalize(sellerName).contains(q) ||
-          sellerUid == null ||
-          sellerUid.isEmpty) {
-        continue;
-      }
-      byUserId.putIfAbsent(
-        sellerUid,
-        () => _SearchUserMatch(
-          userId: sellerUid,
-          fallbackName: sellerName,
-        ),
-      );
-    }
-    return byUserId.values.toList()
-      ..sort((a, b) => a.fallbackName.compareTo(b.fallbackName));
-  }
-
   List<ArtPost> get _results {
     final q = _normalize(_query);
     if (q.isEmpty) return const <ArtPost>[];
@@ -205,58 +177,67 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildResultView() {
     final results = _results;
-    final users = _userResults;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-      children: [
-        const SizedBox(height: 4),
-        Text(
-          '${users.length + results.length} results',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (users.isEmpty && results.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 80),
-            child: Center(
-              child: Text(
-                'No matching posts or users found.',
-                style: TextStyle(color: AppColors.textLight),
+    return StreamBuilder<List<UserProfile>>(
+      stream: ProfileService.instance.watchProfiles(),
+      builder: (context, snapshot) {
+        final users = _filterUsers(snapshot.data ?? const <UserProfile>[]);
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              '${users.length + results.length} results',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
-            ),
-          )
-        else ...[
-          if (users.isNotEmpty) ...[
-            const Text(
-              'Users',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            for (final user in users)
-              _SearchUserTile(
-                match: user,
-              ),
-            const SizedBox(height: 22),
-          ],
-          if (results.isNotEmpty) ...[
-            const Text(
-              'Posts',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
-            MasonryPostGrid(
-              posts: results,
-              onOpenPost: (post) {
-                widget.onOpenPost(post);
-              },
-            ),
+            if (users.isEmpty && results.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(
+                  child: Text(
+                    'No matching posts or users found.',
+                    style: TextStyle(color: AppColors.textLight),
+                  ),
+                ),
+              )
+            else ...[
+              if (users.isNotEmpty) ...[
+                const Text(
+                  'Users',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 10),
+                for (final user in users)
+                  _SearchUserTile(
+                    match: _SearchUserMatch(
+                      userId: user.uid,
+                      fallbackName: user.displayName,
+                      avatarUrl: user.avatarUrl,
+                    ),
+                  ),
+                const SizedBox(height: 22),
+              ],
+              if (results.isNotEmpty) ...[
+                const Text(
+                  'Posts',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 12),
+                MasonryPostGrid(
+                  posts: results,
+                  onOpenPost: (post) {
+                    widget.onOpenPost(post);
+                  },
+                ),
+              ],
+            ],
           ],
-        ],
-      ],
+        );
+      },
     );
   }
 
@@ -269,16 +250,36 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   String _normalize(String value) => value.trim().toLowerCase();
+
+  List<UserProfile> _filterUsers(List<UserProfile> users) {
+    final q = _normalize(_query);
+    if (q.isEmpty) {
+      return const <UserProfile>[];
+    }
+
+    final terms = q.split(RegExp(r'\s+')).where((term) => term.isNotEmpty);
+    return users.where((user) {
+      final fields = [
+        _normalize(user.displayName),
+        _normalize(user.email),
+      ];
+      return terms.every(
+        (term) => fields.any((field) => field.contains(term)),
+      );
+    }).toList();
+  }
 }
 
 class _SearchUserMatch {
   const _SearchUserMatch({
     required this.userId,
     required this.fallbackName,
+    this.avatarUrl,
   });
 
   final String userId;
   final String fallbackName;
+  final String? avatarUrl;
 }
 
 class _SearchUserTile extends StatelessWidget {
@@ -297,7 +298,7 @@ class _SearchUserTile extends StatelessWidget {
         final displayName = profile?.displayName.trim().isNotEmpty == true
             ? profile!.displayName
             : match.fallbackName;
-        final avatarUrl = profile?.avatarUrl;
+        final avatarUrl = profile?.avatarUrl ?? match.avatarUrl;
 
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 6),

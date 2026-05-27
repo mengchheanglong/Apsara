@@ -112,6 +112,7 @@ class PublicUserProfileScreen extends StatelessWidget {
                     return AlbumGrid(
                       posts: posts,
                       onOpenPost: (post) => _openPost(context, post),
+                      limitToSix: false,
                     );
                   },
                 ),

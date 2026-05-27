@@ -22,7 +22,7 @@ class ProfileService {
         displayName:
             _stringValue(data['displayName']) ?? displayNameForUser(user),
         email: _stringValue(data['email']) ?? user.email ?? '',
-        bio: _stringValue(data['bio']) ?? 'Art lover & collector · Cambodia',
+        bio: _bioValue(data['bio'], fallback: 'No bio'),
         avatarUrl: _stringValue(data['avatarUrl']) ?? user.photoURL,
       );
     });
@@ -43,10 +43,61 @@ class ProfileService {
         uid: userId,
         displayName: _stringValue(data['displayName']) ?? 'Apsara user',
         email: _stringValue(data['email']) ?? '',
-        bio: _stringValue(data['bio']) ?? '',
+        bio: _bioValue(data['bio']),
         avatarUrl: _stringValue(data['avatarUrl']),
       );
     });
+  }
+
+  Stream<List<UserProfile>> watchProfiles() {
+    return _db.collection('users').snapshots().map((snapshot) {
+      final profiles = snapshot.docs
+          .map((doc) => UserProfile(
+                uid: doc.id,
+                displayName:
+                    _stringValue(doc.data()['displayName']) ?? 'Apsara user',
+                email: _stringValue(doc.data()['email']) ?? '',
+                bio: _bioValue(doc.data()['bio']),
+                avatarUrl: _stringValue(doc.data()['avatarUrl']),
+              ))
+          .toList();
+      profiles.sort(
+        (a, b) => a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            ),
+      );
+      return profiles;
+    });
+  }
+
+  Future<Map<String, UserProfile>> fetchProfilesByIds(
+      Iterable<String> userIds) async {
+    final ids =
+        userIds.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
+    if (ids.isEmpty) {
+      return const {};
+    }
+
+    final result = <String, UserProfile>{};
+    final allIds = ids.toList();
+    for (var i = 0; i < allIds.length; i += 10) {
+      final chunk = allIds.skip(i).take(10).toList();
+      final snapshot = await _db
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snapshot.docs) {
+        result[doc.id] = UserProfile(
+          uid: doc.id,
+          displayName: _stringValue(doc.data()['displayName']) ?? 'Apsara user',
+          email: _stringValue(doc.data()['email']) ?? '',
+          bio: _bioValue(doc.data()['bio']),
+          avatarUrl: _stringValue(doc.data()['avatarUrl']),
+        );
+      }
+    }
+
+    return result;
   }
 
   Future<void> createInitialProfile({
@@ -56,8 +107,24 @@ class ProfileService {
     return _upsertUserProfile(
       user: user,
       displayName: displayName,
-      bio: 'Art lover & collector · Cambodia',
+      bio: 'No bio',
       avatarUrl: null,
+      includeCreatedAt: true,
+    );
+  }
+
+  Future<void> ensureProfileExists(User user) async {
+    final profileRef = _db.collection('users').doc(user.uid);
+    final snapshot = await profileRef.get();
+    if (snapshot.exists) {
+      return;
+    }
+
+    await _upsertUserProfile(
+      user: user,
+      displayName: displayNameForUser(user),
+      bio: 'No bio',
+      avatarUrl: user.photoURL,
       includeCreatedAt: true,
     );
   }
@@ -82,7 +149,8 @@ class ProfileService {
     if (cleanName != currentName) {
       authUpdates.add(user.updateDisplayName(cleanName));
     }
-    if (normalizedAvatarUrl != null && normalizedAvatarUrl != currentAvatarUrl) {
+    if (normalizedAvatarUrl != null &&
+        normalizedAvatarUrl != currentAvatarUrl) {
       authUpdates.add(user.updatePhotoURL(normalizedAvatarUrl));
     }
     if (authUpdates.isNotEmpty) {
@@ -118,5 +186,14 @@ class ProfileService {
   String? _stringValue(Object? value) {
     final text = value?.toString().trim();
     return text == null || text.isEmpty ? null : text;
+  }
+
+  String _bioValue(Object? value, {String fallback = ''}) {
+    final text = _stringValue(value);
+    if (text == null) {
+      return fallback;
+    }
+
+    return text.toLowerCase().startsWith('art lover') ? 'No bio' : text;
   }
 }

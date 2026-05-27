@@ -210,6 +210,7 @@ class _HomeBody extends StatelessWidget {
     return MasonryPostGrid(
       posts: posts,
       onOpenPost: onOpenPost,
+      showMetadata: false,
     );
   }
 }

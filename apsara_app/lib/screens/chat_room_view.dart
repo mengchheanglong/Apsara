@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -72,6 +73,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
   @override
   void initState() {
     super.initState();
+    _restoreCachedRoom();
     _startRoom();
     _scrollController.addListener(_handleScroll);
     _focusNode.addListener(_handleKeyboardFocus);
@@ -89,6 +91,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
       _hasMoreOlder = true;
       _didInitialScroll = false;
       _messagesSubscription?.cancel();
+      _restoreCachedRoom();
       _startRoom();
     }
   }
@@ -140,6 +143,30 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     unawaited(_markRead());
   }
 
+  void _restoreCachedRoom() {
+    final cached = ChatService.instance.cachedRoomState(_roomId);
+    if (cached == null || cached.messages.isEmpty) {
+      return;
+    }
+
+    _olderMessages
+      ..clear()
+      ..addAll(cached.messages);
+    _liveMessages = const [];
+    _isLoadingMessages = false;
+    _roomError = null;
+    _hasMoreOlder = cached.hasMoreOlder;
+    _didInitialScroll = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _prefetchMessageImages(cached.messages);
+      _scrollToBottom(delay: Duration.zero, animate: false);
+    });
+  }
+
   void _handleLiveMessages(List<MessageModel> messages) {
     final hadMessages = _messages.isNotEmpty;
     final confirmedNonces = messages
@@ -154,8 +181,12 @@ class _ChatRoomViewState extends State<ChatRoomView> {
         (message) => confirmedNonces.contains(message.clientNonce),
       );
     });
+    _cacheCurrentRoomState();
     unawaited(_markRead());
-    if (!_didInitialScroll || _isNearBottom || !hadMessages) {
+    _prefetchMessageImages(messages);
+    if (!_didInitialScroll) {
+      _scrollToBottom(delay: Duration.zero, animate: false);
+    } else if (_isNearBottom || !hadMessages) {
       _scrollToBottom();
     }
     _didInitialScroll = true;
@@ -203,6 +234,8 @@ class _ChatRoomViewState extends State<ChatRoomView> {
         _hasMoreOlder = older.length == ChatService.pageSize;
         _olderMessages.insertAll(0, older);
       });
+      _cacheCurrentRoomState();
+      _prefetchMessageImages(older);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_scrollController.hasClients) {
           return;
@@ -233,13 +266,21 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     }
   }
 
-  void _scrollToBottom({Duration delay = const Duration(milliseconds: 40)}) {
+  void _scrollToBottom({
+    Duration delay = const Duration(milliseconds: 40),
+    bool animate = true,
+  }) {
     Future<void>.delayed(delay, () {
       if (!_scrollController.hasClients || !mounted) {
         return;
       }
+      final target = _scrollController.position.maxScrollExtent;
+      if (!animate) {
+        _scrollController.jumpTo(target);
+        return;
+      }
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        target,
         duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
       );
@@ -249,13 +290,11 @@ class _ChatRoomViewState extends State<ChatRoomView> {
   @override
   Widget build(BuildContext context) {
     final messages = _messages;
-    final isSelfChat = widget.peer.uid == widget.currentUser.uid;
     return Column(
       children: [
         _ChatAppBar(
           fallbackPeer: widget.peer,
           onBack: widget.onBack,
-          isSelfChat: isSelfChat,
         ),
         const Divider(height: 1),
         Expanded(
@@ -321,16 +360,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                       (_isLoadingOlder ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (_isLoadingOlder && index == 0) {
-                      return const Padding(
-                        padding: EdgeInsets.only(bottom: 12),
-                        child: Center(
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      );
+                      return const SizedBox(height: 12);
                     }
                     final adjustedIndex = index - (_isLoadingOlder ? 1 : 0);
                     if (adjustedIndex >= messages.length) {
@@ -369,21 +399,10 @@ class _ChatRoomViewState extends State<ChatRoomView> {
           onSendText: _sendText,
           onSendImage: _sendImage,
           onTypingChanged: _setTyping,
-          quickActions: _quickActionsFor(messages.isEmpty, isSelfChat),
+          quickActions: const [],
         ),
       ],
     );
-  }
-
-  List<String> _quickActionsFor(bool isEmptyChat, bool isSelfChat) {
-    if (!isEmptyChat || isSelfChat) {
-      return const [];
-    }
-    return const [
-      'Is this still available?',
-      'Can you share more details?',
-      'What is your best price?',
-    ];
   }
 
   bool _shouldShowDate(MessageModel? previous, MessageModel current) {
@@ -465,6 +484,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
 
   void _addPendingMessage(MessageModel message) {
     setState(() => _pendingMessages.add(message));
+    _cacheCurrentRoomState();
     _scrollToBottom();
   }
 
@@ -480,6 +500,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
         localStatus: LocalMessageStatus.failed,
       );
     });
+    _cacheCurrentRoomState();
   }
 
   void _retryRoom() {
@@ -496,18 +517,36 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     });
     _startRoom();
   }
+
+  void _cacheCurrentRoomState() {
+    ChatService.instance.cacheRoomState(
+      roomId: _roomId,
+      messages: _messages,
+      hasMoreOlder: _hasMoreOlder,
+    );
+  }
+
+  void _prefetchMessageImages(List<MessageModel> messages) {
+    for (final message in messages.where((item) =>
+        item.type == MessageType.image && item.imageUrl.trim().isNotEmpty)) {
+      unawaited(
+        precacheImage(
+          CachedNetworkImageProvider(message.imageUrl.trim()),
+          context,
+        ).catchError((_) {}),
+      );
+    }
+  }
 }
 
 class _ChatAppBar extends StatelessWidget {
   const _ChatAppBar({
     required this.fallbackPeer,
     required this.onBack,
-    required this.isSelfChat,
   });
 
   final ChatPeer fallbackPeer;
   final VoidCallback onBack;
-  final bool isSelfChat;
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +554,6 @@ class _ChatAppBar extends StatelessWidget {
       return _ChatAppBarContent(
         peer: fallbackPeer,
         onBack: onBack,
-        isSelfChat: isSelfChat,
       );
     }
 
@@ -534,7 +572,6 @@ class _ChatAppBar extends StatelessWidget {
         return _ChatAppBarContent(
           peer: peer,
           onBack: onBack,
-          isSelfChat: isSelfChat,
         );
       },
     );
@@ -545,12 +582,10 @@ class _ChatAppBarContent extends StatelessWidget {
   const _ChatAppBarContent({
     required this.peer,
     required this.onBack,
-    required this.isSelfChat,
   });
 
   final ChatPeer peer;
   final VoidCallback onBack;
-  final bool isSelfChat;
 
   @override
   Widget build(BuildContext context) {
@@ -577,26 +612,14 @@ class _ChatAppBarContent extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            peer.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            isSelfChat ? 'Notes to self' : 'Apsara chat',
-                            style: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        peer.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -671,93 +694,6 @@ class _ChatRoomLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.55, end: 1),
-      duration: const Duration(milliseconds: 850),
-      curve: Curves.easeInOut,
-      builder: (context, opacity, child) {
-        return Opacity(opacity: opacity, child: child);
-      },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(14, 20, 14, 14),
-        children: const [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _LoadingBubble(width: 180),
-          ),
-          SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerRight,
-            child: _LoadingBubble(width: 226, isMine: true),
-          ),
-          SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _LoadingBubble(width: 140),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoadingBubble extends StatelessWidget {
-  const _LoadingBubble({
-    required this.width,
-    this.isMine = false,
-  });
-
-  final double width;
-  final bool isMine;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isMine ? AppColors.chatOutgoingSoft : AppColors.chatIncoming,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(18),
-          topRight: const Radius.circular(18),
-          bottomLeft: Radius.circular(isMine ? 18 : 5),
-          bottomRight: Radius.circular(isMine ? 5 : 18),
-        ),
-        border: isMine ? null : Border.all(color: AppColors.chatIncomingBorder),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SkeletonBar(widthFactor: 0.82, height: 9),
-          SizedBox(height: 8),
-          _SkeletonBar(widthFactor: 0.52, height: 9),
-        ],
-      ),
-    );
-  }
-}
-
-class _SkeletonBar extends StatelessWidget {
-  const _SkeletonBar({
-    required this.widthFactor,
-    this.height = 11,
-  });
-
-  final double widthFactor;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      widthFactor: widthFactor,
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: AppColors.chatIncoming,
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
-    );
+    return const SizedBox.expand();
   }
 }

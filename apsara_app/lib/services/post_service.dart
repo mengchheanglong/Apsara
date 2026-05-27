@@ -128,7 +128,7 @@ class PostService {
       sellerId: sellerId,
       sellerUid: sellerUid,
       category: _stringValue(data['category']) ?? 'Others',
-      condition: _stringValue(data['condition']) ?? 'Handmade',
+      condition: _stringValue(data['condition']) ?? 'Unknown',
       location: _normalizedLocation(_stringValue(data['location']) ?? ''),
       imageUrl: imageUrls is List && imageUrls.isNotEmpty
           ? imageUrls.first.toString()

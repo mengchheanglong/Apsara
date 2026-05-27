@@ -11,6 +11,8 @@ class LabeledField extends StatelessWidget {
     this.obscureText = false,
     this.maxLines = 1,
     this.keyboardType,
+    this.prefixIcon,
+    this.prefixText,
   });
 
   final String label;
@@ -19,6 +21,8 @@ class LabeledField extends StatelessWidget {
   final bool obscureText;
   final int maxLines;
   final TextInputType? keyboardType;
+  final IconData? prefixIcon;
+  final String? prefixText;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +40,17 @@ class LabeledField extends StatelessWidget {
           obscureText: obscureText,
           maxLines: obscureText ? 1 : maxLines,
           keyboardType: keyboardType,
-          decoration: InputDecoration(hintText: hint),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: prefixIcon == null
+                ? null
+                : Icon(
+                    prefixIcon,
+                    size: 18,
+                    color: AppColors.textLight,
+                  ),
+            prefixText: prefixText,
+          ),
         ),
       ],
     );
@@ -70,6 +84,7 @@ class DropdownField extends StatelessWidget {
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,
+          isExpanded: true,
           style: const TextStyle(
             color: AppColors.text,
             fontSize: 13,
@@ -81,6 +96,8 @@ class DropdownField extends StatelessWidget {
                   value: item,
                   child: Text(
                     item,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: const TextStyle(fontWeight: FontWeight.w400),
                   ),
                 ),
