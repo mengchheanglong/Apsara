@@ -10,7 +10,7 @@ import '../widgets/app_cached_media.dart';
 import 'public_user_profile_screen.dart';
 
 class CommentsScreen extends StatefulWidget {
-  const CommentsScreen({
+  CommentsScreen({
     super.key,
     required this.post,
     required this.onAddComment,
@@ -37,11 +37,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        title: const Text('Comments'),
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
+        title: Text('Comments'),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -51,32 +51,32 @@ class _CommentsScreenState extends State<CommentsScreen> {
               child: StreamBuilder<List<PostComment>>(
                 stream: EngagementService.instance.watchComments(widget.post),
                 builder: (context, snapshot) {
-                  final comments = snapshot.data ?? const <PostComment>[];
+                  final comments = snapshot.data ?? <PostComment>[];
                   if (snapshot.hasError && comments.isEmpty) {
                     return _CommentsError(onRetry: _retryComments);
                   }
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       comments.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.primary,
+                        color: context.appColors.primary,
                       ),
                     );
                   }
                   if (comments.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
                         'No comments yet',
-                        style: TextStyle(color: AppColors.textLight),
+                        style: TextStyle(color: context.appColors.textLight),
                       ),
                     );
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 24),
                     itemCount: comments.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    separatorBuilder: (_, __) => SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final comment = comments[index];
                       return _CommentRow(comment: comment);
@@ -86,10 +86,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.border)),
+              padding: EdgeInsets.fromLTRB(14, 10, 14, 12),
+              decoration: BoxDecoration(
+                color: context.appColors.surface,
+                border:
+                    Border(top: BorderSide(color: context.appColors.border)),
               ),
               child: Row(
                 children: [
@@ -101,20 +102,29 @@ class _CommentsScreenState extends State<CommentsScreen> {
                       maxLines: 4,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _submit(),
-                      decoration: const InputDecoration(
+                      cursorColor: context.appColors.primary,
+                      style: TextStyle(
+                        color: context.appColors.text,
+                        fontSize: 13,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'Add a comment',
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: _isSubmitting ? null : _submit,
-                    style:
-                        IconButton.styleFrom(backgroundColor: AppColors.text),
+                    style: IconButton.styleFrom(
+                      backgroundColor: context.appColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: context.appColors.soft,
+                      disabledForegroundColor: context.appColors.textLight,
+                    ),
                     icon: _isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
@@ -122,7 +132,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(Icons.arrow_upward, color: Colors.white),
+                        : Icon(Icons.arrow_upward, color: Colors.white),
                   ),
                 ],
               ),
@@ -146,7 +156,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to post comment.')),
+          SnackBar(content: Text('Unable to post comment.')),
         );
       }
     } finally {
@@ -170,7 +180,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
 }
 
 class _CommentsError extends StatelessWidget {
-  const _CommentsError({
+  _CommentsError({
     required this.onRetry,
   });
 
@@ -182,31 +192,31 @@ class _CommentsError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.wifi_tethering_error_rounded,
-            color: AppColors.textLight,
+            color: context.appColors.textLight,
             size: 32,
           ),
-          const SizedBox(height: 10),
-          const Text(
+          SizedBox(height: 10),
+          Text(
             'Unable to load comments',
             style: TextStyle(
-              color: AppColors.text,
+              color: context.appColors.text,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Check your connection and try again',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
               fontSize: 12,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           TextButton(
             onPressed: onRetry,
-            child: const Text('Retry'),
+            child: Text('Retry'),
           ),
         ],
       ),
@@ -215,7 +225,7 @@ class _CommentsError extends StatelessWidget {
 }
 
 class _CommentRow extends StatelessWidget {
-  const _CommentRow({
+  _CommentRow({
     required this.comment,
   });
 
@@ -243,11 +253,11 @@ class _CommentRow extends StatelessWidget {
                 displayName: displayName,
                 imageUrl: avatarUrl,
                 radius: 17,
-                backgroundColor: AppColors.soft,
-                foregroundColor: AppColors.textSecondary,
+                backgroundColor: context.appColors.soft,
+                foregroundColor: context.appColors.textSecondary,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +276,7 @@ class _CommentRow extends StatelessWidget {
                           child: Text(
                             displayName,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                             ),
@@ -275,18 +285,18 @@ class _CommentRow extends StatelessWidget {
                       ),
                       Text(
                         comment.timeLabel,
-                        style: const TextStyle(
-                          color: AppColors.textLight,
+                        style: TextStyle(
+                          color: context.appColors.textLight,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     comment.text,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 13,
                       height: 1.35,
                     ),

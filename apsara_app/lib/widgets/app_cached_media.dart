@@ -10,7 +10,7 @@ class AppAvatar extends StatelessWidget {
     required this.displayName,
     this.imageUrl,
     this.radius = 20,
-    this.backgroundColor = AppColors.text,
+    this.backgroundColor,
     this.foregroundColor = Colors.white,
     this.fontSize,
     this.fontWeight = FontWeight.w700,
@@ -19,7 +19,7 @@ class AppAvatar extends StatelessWidget {
   final String displayName;
   final String? imageUrl;
   final double radius;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final Color foregroundColor;
   final double? fontSize;
   final FontWeight fontWeight;
@@ -31,7 +31,7 @@ class AppAvatar extends StatelessWidget {
 
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor,
+      backgroundColor: backgroundColor ?? context.appColors.text,
       backgroundImage:
           hasImage ? CachedNetworkImageProvider(normalizedUrl) : null,
       child: hasImage
@@ -77,9 +77,9 @@ class AppCachedImage extends StatelessWidget {
             Container(
               height: height,
               width: width,
-              color: AppColors.soft,
+              color: context.appColors.soft,
               alignment: Alignment.center,
-              child: const Icon(Icons.image_not_supported_outlined),
+              child: Icon(Icons.image_not_supported_outlined),
             ),
       );
     }
@@ -94,16 +94,16 @@ class AppCachedImage extends StatelessWidget {
           Container(
             height: height,
             width: width,
-            color: AppColors.soft,
+            color: context.appColors.soft,
           ),
       errorWidget: (_, __, ___) =>
           errorChild ??
           Container(
             height: height,
             width: width,
-            color: AppColors.soft,
+            color: context.appColors.soft,
             alignment: Alignment.center,
-            child: const Icon(Icons.image_not_supported_outlined),
+            child: Icon(Icons.image_not_supported_outlined),
           ),
     );
 

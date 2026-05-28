@@ -17,7 +17,7 @@ import 'comments_screen.dart';
 import 'public_user_profile_screen.dart';
 
 class PostDetailSheet extends StatefulWidget {
-  const PostDetailSheet({
+  PostDetailSheet({
     super.key,
     required this.post,
     required this.isSaved,
@@ -49,12 +49,6 @@ class PostDetailSheet extends StatefulWidget {
 }
 
 class _PostDetailSheetState extends State<PostDetailSheet> {
-  static const _menuTextStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: AppColors.text,
-  );
-
   late bool _saved;
   late bool _liked;
   late int _likeCount;
@@ -134,19 +128,19 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       maxChildSize: 0.96,
       builder: (context, controller) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
+          decoration: BoxDecoration(
+            color: context.appColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
           child: Stack(
             children: [
               ListView(
                 controller: controller,
-                padding: const EdgeInsets.only(bottom: 94),
+                padding: EdgeInsets.only(bottom: 94),
                 children: [
                   ClipRRect(
                     borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(22)),
+                        BorderRadius.vertical(top: Radius.circular(22)),
                     child: GestureDetector(
                       onTap: () => _openFullImage(context, post),
                       child: Hero(
@@ -158,17 +152,16 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                           fit: BoxFit.cover,
                           errorChild: Container(
                             height: 430,
-                            color: AppColors.soft,
+                            color: context.appColors.soft,
                             alignment: Alignment.center,
-                            child:
-                                const Icon(Icons.image_not_supported_outlined),
+                            child: Icon(Icons.image_not_supported_outlined),
                           ),
                         ),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                    padding: EdgeInsets.fromLTRB(18, 12, 18, 18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -179,35 +172,36 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                               icon: Icon(_liked
                                   ? Icons.favorite
                                   : Icons.favorite_border),
-                              color:
-                                  _liked ? AppColors.primary : AppColors.text,
+                              color: _liked
+                                  ? context.appColors.primary
+                                  : context.appColors.text,
                             ),
                             Text('$_likeCount'),
                             IconButton(
                               onPressed: _openComments,
-                              icon:
-                                  const Icon(Icons.chat_bubble_outline_rounded),
+                              icon: Icon(Icons.chat_bubble_outline_rounded),
                             ),
                             Text('$_commentCount'),
                             IconButton(
                               onPressed: _isSharing ? null : _sharePost,
-                              icon: const Icon(Icons.ios_share),
+                              icon: Icon(Icons.ios_share),
                             ),
                             Text('$_shareCount'),
-                            const Spacer(),
+                            Spacer(),
                             Theme(
                               data: Theme.of(context).copyWith(
-                                dividerColor: AppColors.border,
-                                popupMenuTheme: const PopupMenuThemeData(
-                                  color: AppColors.surface,
-                                  surfaceTintColor: AppColors.surface,
-                                  textStyle: _menuTextStyle,
+                                dividerColor: context.appColors.border,
+                                popupMenuTheme: PopupMenuThemeData(
+                                  color: context.appColors.surfaceWarm,
+                                  surfaceTintColor:
+                                      context.appColors.surfaceWarm,
+                                  textStyle: _menuTextStyle(context),
                                 ),
                               ),
                               child: PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_horiz),
-                                color: AppColors.surface,
-                                surfaceTintColor: AppColors.surface,
+                                icon: Icon(Icons.more_horiz),
+                                color: context.appColors.surfaceWarm,
+                                surfaceTintColor: context.appColors.surfaceWarm,
                                 onSelected: _handleMoreAction,
                                 itemBuilder: _buildMoreActions,
                               ),
@@ -216,75 +210,76 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                         ),
                         Text(
                           post.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             height: 1.25,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           post.priceLabel,
                           style: TextStyle(
                             color: post.isForSale
-                                ? AppColors.primary
-                                : AppColors.textLight,
+                                ? context.appColors.primary
+                                : context.appColors.textLight,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             if (post.isForSale)
-                              const Pill(
+                              Pill(
                                 label: 'For sale',
-                                background: AppColors.saleBg,
-                                foreground: AppColors.saleText,
+                                background: context.appColors.saleBg,
+                                foreground: context.appColors.saleText,
                               ),
                             Pill(label: post.category),
                             Pill(label: post.condition),
                           ],
                         ),
-                        const SizedBox(height: 22),
-                        const Text(
+                        SizedBox(height: 22),
+                        Text(
                           'DESCRIPTION',
                           style: TextStyle(
-                            color: AppColors.textLight,
+                            color: context.appColors.textLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           post.description.trim().isEmpty
                               ? 'No description'
                               : post.description,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, height: 1.55),
+                          style: TextStyle(
+                              color: context.appColors.textSecondary,
+                              height: 1.55),
                         ),
-                        const SizedBox(height: 18),
-                        const Text(
+                        SizedBox(height: 18),
+                        Text(
                           'LOCATION',
                           style: TextStyle(
-                            color: AppColors.textLight,
+                            color: context.appColors.textLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           post.location.trim().isEmpty
                               ? 'No location'
                               : post.location,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
                             height: 1.55,
                           ),
                         ),
-                        const SizedBox(height: 22),
+                        SizedBox(height: 22),
                         _SellerRow(
                           post: post,
                         ),
@@ -297,10 +292,10 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                 top: 12,
                 right: 12,
                 child: CircleAvatar(
-                  backgroundColor: AppColors.surface,
+                  backgroundColor: context.appColors.surface,
                   child: IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close),
                   ),
                 ),
               ),
@@ -309,10 +304,11 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                 right: 0,
                 bottom: 0,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border(top: BorderSide(color: AppColors.border)),
+                  padding: EdgeInsets.fromLTRB(18, 12, 18, 18),
+                  decoration: BoxDecoration(
+                    color: context.appColors.surface,
+                    border: Border(
+                        top: BorderSide(color: context.appColors.border)),
                   ),
                   child: Row(
                     children: [
@@ -327,20 +323,21 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                             overflow: TextOverflow.clip,
                           ),
                           style: FilledButton.styleFrom(
-                            backgroundColor:
-                                _saved ? AppColors.soft : AppColors.surfaceWarm,
+                            backgroundColor: _saved
+                                ? context.appColors.soft
+                                : context.appColors.surfaceWarm,
                             foregroundColor: _saved
-                                ? AppColors.textSecondary
-                                : AppColors.text,
-                            padding: const EdgeInsets.symmetric(
+                                ? context.appColors.textSecondary
+                                : context.appColors.text,
+                            padding: EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 14,
                             ),
-                            side: const BorderSide(color: AppColors.border),
+                            side: BorderSide(color: context.appColors.border),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         flex: 2,
                         child: FilledButton(
@@ -348,10 +345,12 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
                               ? _confirmDeletePost
                               : widget.onMessageSeller,
                           style: FilledButton.styleFrom(
-                            backgroundColor: widget.isOwnPost
-                                ? AppColors.text
-                                : AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: context.appColors.primary,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: context.appColors.soft,
+                            disabledForegroundColor:
+                                context.appColors.textLight,
+                            padding: EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: Text(
                               widget.isOwnPost && widget.onDelete != null
@@ -502,26 +501,26 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: AppColors.surface,
-          title: const Text('Delete post?'),
-          content: const Text(
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
+          title: Text('Delete post?'),
+          content: Text(
             'This will remove the post from Apsara. This action cannot be undone.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: context.appColors.primary,
               ),
-              child: const Text('Delete'),
+              child: Text('Delete'),
             ),
           ],
         );
@@ -572,34 +571,51 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
   }
 
   List<PopupMenuEntry<String>> _buildMoreActions(BuildContext context) {
+    final menuTextStyle = _menuTextStyle(context);
+    final destructiveTextStyle = menuTextStyle.copyWith(
+      color: context.appColors.primary,
+      fontWeight: FontWeight.w500,
+    );
+    final disabledTextStyle = menuTextStyle.copyWith(
+      color: context.appColors.textLight.withValues(alpha: 0.62),
+    );
+
     return [
       if (widget.isOwnPost &&
           (widget.onEdit != null || widget.onDelete != null)) ...[
         if (widget.onEdit != null)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'edit_post',
-            child: Text('Edit post', style: _menuTextStyle),
+            child: Text('Edit post', style: menuTextStyle),
           ),
         if (widget.onDelete != null)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'delete_post',
-            child: Text('Delete post', style: _menuTextStyle),
+            child: Text('Delete post', style: destructiveTextStyle),
           ),
-        const PopupMenuDivider(height: 1),
+        PopupMenuDivider(height: 1),
       ],
       PopupMenuItem<String>(
         value: 'save_image',
         enabled: !_isSavingImage,
         child: Text(
           _isSavingImage ? 'Saving image...' : 'Save image',
-          style: _menuTextStyle,
+          style: _isSavingImage ? disabledTextStyle : menuTextStyle,
         ),
       ),
-      const PopupMenuItem<String>(
+      PopupMenuItem<String>(
         value: 'copy_link',
-        child: Text('Copy image link', style: _menuTextStyle),
+        child: Text('Copy image link', style: menuTextStyle),
       ),
     ];
+  }
+
+  TextStyle _menuTextStyle(BuildContext context) {
+    return TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w400,
+      color: context.appColors.text,
+    );
   }
 
   Future<void> _saveImageFromMenu() async {
@@ -670,7 +686,7 @@ class _PostDetailSheetState extends State<PostDetailSheet> {
 }
 
 class FullScreenPostImage extends StatelessWidget {
-  const FullScreenPostImage({
+  FullScreenPostImage({
     super.key,
     required this.post,
   });
@@ -695,7 +711,7 @@ class FullScreenPostImage extends StatelessWidget {
                   imageUrl: post.imageUrl,
                   width: double.infinity,
                   fit: BoxFit.contain,
-                  errorChild: const Icon(
+                  errorChild: Icon(
                     Icons.image_not_supported_outlined,
                     color: Colors.white70,
                     size: 42,
@@ -715,7 +731,7 @@ String _postImageHeroTag(ArtPost post) {
 }
 
 class _SellerRow extends StatelessWidget {
-  const _SellerRow({
+  _SellerRow({
     required this.post,
   });
 
@@ -746,7 +762,7 @@ class _SellerRow extends StatelessWidget {
                     avatarUrl,
                   ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
                 AppAvatar(
@@ -754,12 +770,12 @@ class _SellerRow extends StatelessWidget {
                   imageUrl: avatarUrl,
                   radius: 22,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     displayName,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

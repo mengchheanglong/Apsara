@@ -15,7 +15,7 @@ import 'chat_room_view.dart';
 import 'post_detail_screen.dart';
 
 class PublicUserProfileScreen extends StatelessWidget {
-  const PublicUserProfileScreen({
+  PublicUserProfileScreen({
     super.key,
     required this.userId,
     required this.fallbackName,
@@ -41,12 +41,12 @@ class PublicUserProfileScreen extends StatelessWidget {
         final avatarUrl = profile?.avatarUrl ?? fallbackAvatarUrl;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.appColors.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: AppColors.surface,
+            backgroundColor: context.appColors.surface,
+            surfaceTintColor: context.appColors.surface,
             centerTitle: true,
-            title: const Text('Profile'),
+            title: Text('Profile'),
             actions: [
               IconButton(
                 onPressed: () => _openChat(
@@ -55,13 +55,13 @@ class PublicUserProfileScreen extends StatelessWidget {
                   email: profile?.email ?? '',
                   avatarUrl: avatarUrl,
                 ),
-                icon: const Icon(Icons.mode_comment_outlined),
+                icon: Icon(Icons.mode_comment_outlined),
               ),
             ],
           ),
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              padding: EdgeInsets.fromLTRB(16, 20, 16, 32),
               children: [
                 Center(
                   child: AppAvatar(
@@ -72,40 +72,40 @@ class PublicUserProfileScreen extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   displayName,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   bio,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 24),
-                const Divider(color: AppColors.border),
-                const SizedBox(height: 16),
-                const Text(
+                SizedBox(height: 24),
+                Divider(color: context.appColors.border),
+                SizedBox(height: 16),
+                Text(
                   'Posts',
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 StreamBuilder<List<ArtPost>>(
                   stream: PostService.instance.watchPostsBySeller(userId),
                   builder: (context, postsSnapshot) {
-                    final posts = postsSnapshot.data ?? const <ArtPost>[];
+                    final posts = postsSnapshot.data ?? <ArtPost>[];
                     if (posts.isEmpty) {
-                      return const Text(
+                      return Text(
                         'No posts yet.',
-                        style: TextStyle(color: AppColors.textLight),
+                        style: TextStyle(color: context.appColors.textLight),
                       );
                     }
 
@@ -143,7 +143,7 @@ class PublicUserProfileScreen extends StatelessWidget {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to start chat.')),
+          SnackBar(content: Text('Unable to start chat.')),
         );
       }
       return;
@@ -155,7 +155,7 @@ class PublicUserProfileScreen extends StatelessWidget {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.appColors.surface,
           body: SafeArea(
             bottom: false,
             child: ChatRoomView(

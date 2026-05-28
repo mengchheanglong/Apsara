@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/post_grids.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
+  HomeScreen({
     super.key,
     required this.posts,
     required this.isLoading,
@@ -57,7 +57,7 @@ class HomeScreenState extends State<HomeScreen> {
 
     _scrollController.animateTo(
       0,
-      duration: const Duration(milliseconds: 260),
+      duration: Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
   }
@@ -90,33 +90,33 @@ class HomeScreenState extends State<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 14, 8),
+              padding: EdgeInsets.fromLTRB(12, 4, 14, 8),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: widget.onOpenPostTools,
-                    icon: const Icon(Icons.add, color: AppColors.text),
+                    icon: Icon(Icons.add, color: context.appColors.text),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Expanded(
                     child: GestureDetector(
                       onTap: widget.onOpenSearch,
                       child: Container(
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.soft,
+                          color: context.appColors.soft,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: const Row(
+                        padding: EdgeInsets.symmetric(horizontal: 14),
+                        child: Row(
                           children: [
                             Icon(Icons.search,
-                                color: AppColors.textLight, size: 20),
+                                color: context.appColors.textLight, size: 20),
                             SizedBox(width: 10),
                             Text(
                               'Search posts or users...',
                               style: TextStyle(
-                                color: AppColors.textLight,
+                                color: context.appColors.textLight,
                                 fontSize: 14,
                               ),
                             ),
@@ -133,10 +133,10 @@ class HomeScreenState extends State<HomeScreen> {
             child: SizedBox(
               height: 40,
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, __) => SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final category = categories[index];
                   final selected = category == _category;
@@ -144,10 +144,10 @@ class HomeScreenState extends State<HomeScreen> {
                     selected: selected,
                     label: Text(category),
                     showCheckmark: false,
-                    selectedColor: AppColors.text,
-                    backgroundColor: AppColors.soft,
+                    selectedColor: context.appColors.primary,
+                    backgroundColor: context.appColors.soft,
                     labelStyle: TextStyle(
-                      color: selected ? Colors.white : AppColors.text,
+                      color: selected ? Colors.white : context.appColors.text,
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
@@ -161,7 +161,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 96),
             sliver: SliverToBoxAdapter(
               child: _HomeBody(
                 posts: posts,
@@ -180,7 +180,7 @@ class HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeBody extends StatelessWidget {
-  const _HomeBody({
+  _HomeBody({
     required this.posts,
     required this.category,
     required this.isLoading,
@@ -199,7 +199,7 @@ class _HomeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading && posts.isEmpty) {
-      return const _HomeLoadingState();
+      return _HomeLoadingState();
     }
     if (loadError != null && posts.isEmpty) {
       return _HomeErrorState(onRetry: onRetry);
@@ -216,7 +216,7 @@ class _HomeBody extends StatelessWidget {
 }
 
 class _HomeEmptyState extends StatelessWidget {
-  const _HomeEmptyState({
+  _HomeEmptyState({
     required this.category,
   });
 
@@ -229,20 +229,20 @@ class _HomeEmptyState extends StatelessWidget {
       width: double.infinity,
       height: MediaQuery.sizeOf(context).height * 0.48,
       child: Align(
-        alignment: const Alignment(0, -0.18),
+        alignment: Alignment(0, -0.18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.image_outlined,
-              color: AppColors.textLight,
+              color: context.appColors.textLight,
               size: 34,
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Text(
               isFiltered ? 'No $category posts yet' : 'No posts yet',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
@@ -255,14 +255,14 @@ class _HomeEmptyState extends StatelessWidget {
 }
 
 class _HomeLoadingState extends StatelessWidget {
-  const _HomeLoadingState();
+  _HomeLoadingState();
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: MediaQuery.sizeOf(context).height * 0.48,
-      child: const Align(
+      child: Align(
         alignment: Alignment(0, -0.18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -272,14 +272,14 @@ class _HomeLoadingState extends StatelessWidget {
               height: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2.4,
-                color: AppColors.primary,
+                color: context.appColors.primary,
               ),
             ),
             SizedBox(height: 12),
             Text(
               'Loading posts...',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -291,7 +291,7 @@ class _HomeLoadingState extends StatelessWidget {
 }
 
 class _HomeErrorState extends StatelessWidget {
-  const _HomeErrorState({
+  _HomeErrorState({
     required this.onRetry,
   });
 
@@ -303,17 +303,17 @@ class _HomeErrorState extends StatelessWidget {
       width: double.infinity,
       height: MediaQuery.sizeOf(context).height * 0.48,
       child: Align(
-        alignment: const Alignment(0, -0.18),
+        alignment: Alignment(0, -0.18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.wifi_tethering_error_rounded,
-              color: AppColors.textLight,
+              color: context.appColors.textLight,
               size: 34,
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: 10),
+            Text(
               'Unable to load posts',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -321,19 +321,19 @@ class _HomeErrorState extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Check your connection and try again',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text('Retry'),
             ),
           ],
         ),

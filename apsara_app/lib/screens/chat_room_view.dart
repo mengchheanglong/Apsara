@@ -20,7 +20,7 @@ import '../widgets/typing_indicator.dart';
 import 'public_user_profile_screen.dart';
 
 class ChatRoomView extends StatefulWidget {
-  const ChatRoomView({
+  ChatRoomView({
     super.key,
     required this.currentUser,
     required this.currentProfile,
@@ -43,7 +43,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
   final List<MessageModel> _olderMessages = [];
   final List<MessageModel> _pendingMessages = [];
   StreamSubscription<List<MessageModel>>? _messagesSubscription;
-  List<MessageModel> _liveMessages = const [];
+  List<MessageModel> _liveMessages = [];
   bool _isLoadingMessages = true;
   Object? _roomError;
   bool _isLoadingOlder = false;
@@ -85,7 +85,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     if (oldWidget.peer.uid != widget.peer.uid) {
       _olderMessages.clear();
       _pendingMessages.clear();
-      _liveMessages = const [];
+      _liveMessages = [];
       _isLoadingMessages = true;
       _roomError = null;
       _hasMoreOlder = true;
@@ -152,7 +152,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     _olderMessages
       ..clear()
       ..addAll(cached.messages);
-    _liveMessages = const [];
+    _liveMessages = [];
     _isLoadingMessages = false;
     _roomError = null;
     _hasMoreOlder = cached.hasMoreOlder;
@@ -203,9 +203,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     if (!_scrollController.hasClients) {
       return true;
     }
-    return _scrollController.position.maxScrollExtent -
-            _scrollController.offset <
-        220;
+    return _scrollController.offset <= 220;
   }
 
   Future<void> _loadOlderMessages() async {
@@ -255,7 +253,8 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     if (!_scrollController.hasClients) {
       return;
     }
-    if (_scrollController.offset <= 120) {
+    if (_scrollController.position.maxScrollExtent - _scrollController.offset <=
+        120) {
       unawaited(_loadOlderMessages());
     }
   }
@@ -274,14 +273,14 @@ class _ChatRoomViewState extends State<ChatRoomView> {
       if (!_scrollController.hasClients || !mounted) {
         return;
       }
-      final target = _scrollController.position.maxScrollExtent;
+      final target = _scrollController.position.minScrollExtent;
       if (!animate) {
         _scrollController.jumpTo(target);
         return;
       }
       _scrollController.animateTo(
         target,
-        duration: const Duration(milliseconds: 240),
+        duration: Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
       );
     });
@@ -296,10 +295,10 @@ class _ChatRoomViewState extends State<ChatRoomView> {
           fallbackPeer: widget.peer,
           onBack: widget.onBack,
         ),
-        const Divider(height: 1),
+        Divider(height: 1),
         Expanded(
           child: Container(
-            color: AppColors.chatCanvas,
+            color: context.appColors.chatCanvas,
             child: StreamBuilder<bool>(
               stream: ChatService.instance.watchTyping(
                 roomId: _roomId,
@@ -310,7 +309,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                 if (_roomError != null && messages.isEmpty) {
                   return Column(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: EmptyState(
                           icon: Icons.wifi_tethering_error_rounded,
                           title: 'Chat is unavailable',
@@ -318,22 +317,22 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
+                        padding: EdgeInsets.only(bottom: 16),
                         child: TextButton(
                           onPressed: _retryRoom,
-                          child: const Text('Retry'),
+                          child: Text('Retry'),
                         ),
                       ),
                     ],
                   );
                 }
                 if (_isLoadingMessages && messages.isEmpty) {
-                  return const _ChatRoomLoading();
+                  return _ChatRoomLoading();
                 }
                 if (messages.isEmpty) {
                   return Column(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: EmptyState(
                           icon: Icons.chat_bubble_outline_rounded,
                           title: 'Start the conversation',
@@ -341,7 +340,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                         ),
                       ),
                       if (isTyping)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                           child: Align(
                             alignment: Alignment.centerLeft,
@@ -354,17 +353,14 @@ class _ChatRoomViewState extends State<ChatRoomView> {
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  reverse: true,
+                  padding: EdgeInsets.fromLTRB(14, 12, 14, 14),
                   itemCount: messages.length +
                       (isTyping ? 1 : 0) +
                       (_isLoadingOlder ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (_isLoadingOlder && index == 0) {
-                      return const SizedBox(height: 12);
-                    }
-                    final adjustedIndex = index - (_isLoadingOlder ? 1 : 0);
-                    if (adjustedIndex >= messages.length) {
-                      return const Padding(
+                    if (isTyping && index == 0) {
+                      return Padding(
                         padding: EdgeInsets.only(top: 4),
                         child: Align(
                           alignment: Alignment.centerLeft,
@@ -373,9 +369,15 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                       );
                     }
 
-                    final message = messages[adjustedIndex];
+                    final messageIndex = index - (isTyping ? 1 : 0);
+                    if (_isLoadingOlder && messageIndex >= messages.length) {
+                      return SizedBox(height: 12);
+                    }
+
+                    final reversedIndex = messages.length - 1 - messageIndex;
+                    final message = messages[reversedIndex];
                     final previous =
-                        adjustedIndex == 0 ? null : messages[adjustedIndex - 1];
+                        reversedIndex == 0 ? null : messages[reversedIndex - 1];
                     final showDate = _shouldShowDate(previous, message);
 
                     return Column(
@@ -399,7 +401,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
           onSendText: _sendText,
           onSendImage: _sendImage,
           onTypingChanged: _setTyping,
-          quickActions: const [],
+          quickActions: [],
         ),
       ],
     );
@@ -513,7 +515,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
       _didInitialScroll = false;
       _olderMessages.clear();
       _pendingMessages.clear();
-      _liveMessages = const [];
+      _liveMessages = [];
     });
     _startRoom();
   }
@@ -540,7 +542,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
 }
 
 class _ChatAppBar extends StatelessWidget {
-  const _ChatAppBar({
+  _ChatAppBar({
     required this.fallbackPeer,
     required this.onBack,
   });
@@ -579,7 +581,7 @@ class _ChatAppBar extends StatelessWidget {
 }
 
 class _ChatAppBarContent extends StatelessWidget {
-  const _ChatAppBarContent({
+  _ChatAppBarContent({
     required this.peer,
     required this.onBack,
   });
@@ -590,10 +592,10 @@ class _ChatAppBarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 2, 14, 8),
+      padding: EdgeInsets.fromLTRB(6, 2, 14, 8),
       child: Row(
         children: [
-          IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back)),
+          IconButton(onPressed: onBack, icon: Icon(Icons.arrow_back)),
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -601,22 +603,22 @@ class _ChatAppBarContent extends StatelessWidget {
                   ? null
                   : () => _openUserProfile(context, peer),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     AppAvatar(
                       displayName: peer.displayName,
                       imageUrl: peer.avatarUrl,
                       radius: 19,
-                      backgroundColor: AppColors.text,
+                      backgroundColor: context.appColors.text,
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         peer.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -646,7 +648,7 @@ class _ChatAppBarContent extends StatelessWidget {
 }
 
 class _DateSeparator extends StatelessWidget {
-  const _DateSeparator({required this.date});
+  _DateSeparator({required this.date});
 
   final DateTime? date;
 
@@ -654,21 +656,22 @@ class _DateSeparator extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = date;
     if (value == null) {
-      return const SizedBox.shrink();
+      return SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: 12),
       child: Center(
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.soft,
+            color: context.appColors.soft,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             child: Text(
               _label(value),
-              style: const TextStyle(color: AppColors.textLight, fontSize: 11),
+              style:
+                  TextStyle(color: context.appColors.textLight, fontSize: 11),
             ),
           ),
         ),
@@ -681,7 +684,7 @@ class _DateSeparator extends StatelessWidget {
     if (DateUtils.isSameDay(now, value)) {
       return 'Today';
     }
-    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterday = now.subtract(Duration(days: 1));
     if (DateUtils.isSameDay(yesterday, value)) {
       return 'Yesterday';
     }
@@ -690,10 +693,10 @@ class _DateSeparator extends StatelessWidget {
 }
 
 class _ChatRoomLoading extends StatelessWidget {
-  const _ChatRoomLoading();
+  _ChatRoomLoading();
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.expand();
+    return SizedBox.expand();
   }
 }

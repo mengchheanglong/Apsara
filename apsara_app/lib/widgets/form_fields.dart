@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class LabeledField extends StatelessWidget {
-  const LabeledField({
+  LabeledField({
     super.key,
     required this.label,
     required this.controller,
@@ -30,16 +30,18 @@ class LabeledField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary,
+            style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         TextField(
           controller: controller,
           obscureText: obscureText,
           maxLines: obscureText ? 1 : maxLines,
           keyboardType: keyboardType,
+          cursorColor: context.appColors.primary,
+          style: TextStyle(color: context.appColors.text, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon == null
@@ -47,7 +49,7 @@ class LabeledField extends StatelessWidget {
                 : Icon(
                     prefixIcon,
                     size: 18,
-                    color: AppColors.textLight,
+                    color: context.appColors.textLight,
                   ),
             prefixText: prefixText,
           ),
@@ -58,7 +60,7 @@ class LabeledField extends StatelessWidget {
 }
 
 class DropdownField extends StatelessWidget {
-  const DropdownField({
+  DropdownField({
     super.key,
     required this.label,
     required this.value,
@@ -77,16 +79,19 @@ class DropdownField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary,
+            style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: value,
           isExpanded: true,
-          style: const TextStyle(
-            color: AppColors.text,
+          dropdownColor: context.appColors.surfaceWarm,
+          iconEnabledColor: context.appColors.textSecondary,
+          iconDisabledColor: context.appColors.textLight,
+          style: TextStyle(
+            color: context.appColors.text,
             fontSize: 13,
             fontWeight: FontWeight.w400,
           ),
@@ -98,7 +103,7 @@ class DropdownField extends StatelessWidget {
                     item,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
-                    style: const TextStyle(fontWeight: FontWeight.w400),
+                    style: TextStyle(fontWeight: FontWeight.w400),
                   ),
                 ),
               )
@@ -106,7 +111,7 @@ class DropdownField extends StatelessWidget {
           onChanged: (value) {
             if (value != null) onChanged(value);
           },
-          decoration: const InputDecoration(),
+          decoration: InputDecoration(),
         ),
       ],
     );

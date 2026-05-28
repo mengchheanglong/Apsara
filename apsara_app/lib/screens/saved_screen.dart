@@ -7,7 +7,7 @@ import '../widgets/post_grids.dart';
 import 'saved_category_screen.dart';
 
 class SavedScreen extends StatefulWidget {
-  const SavedScreen({
+  SavedScreen({
     super.key,
     required this.posts,
     required this.onOpenPost,
@@ -35,7 +35,7 @@ class SavedScreenState extends State<SavedScreen> {
     }
     _scrollController.animateTo(
       0,
-      duration: const Duration(milliseconds: 260),
+      duration: Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
   }
@@ -51,28 +51,28 @@ class SavedScreenState extends State<SavedScreen> {
 
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
+      padding: EdgeInsets.fromLTRB(16, 18, 16, 96),
       children: [
-        const Text(
+        Text(
           'Saved',
           style: TextStyle(
-            color: AppColors.primary,
+            color: context.appColors.primary,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           savedCountLabel,
-          style: const TextStyle(
-            color: AppColors.textLight,
+          style: TextStyle(
+            color: context.appColors.textLight,
             fontSize: 12,
             fontWeight: FontWeight.w400,
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         if (widget.posts.isEmpty)
-          const EmptyState(
+          EmptyState(
             icon: Icons.bookmark_border_rounded,
             title: 'Nothing saved yet',
             subtitle: 'Tap Save on any item',
@@ -83,11 +83,11 @@ class SavedScreenState extends State<SavedScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(entry.key,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             AlbumGrid(
               posts: entry.value,
               onOpenPost: widget.onOpenPost,
@@ -97,7 +97,7 @@ class SavedScreenState extends State<SavedScreen> {
                 posts: entry.value,
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
           ],
       ],
     );

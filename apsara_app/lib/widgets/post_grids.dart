@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import 'app_cached_media.dart';
 
 class MasonryPostGrid extends StatelessWidget {
-  const MasonryPostGrid({
+  MasonryPostGrid({
     super.key,
     required this.posts,
     required this.onOpenPost,
@@ -19,7 +19,7 @@ class MasonryPostGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (posts.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.only(top: 80),
         child: Center(child: Text('No posts found')),
       );
@@ -42,7 +42,7 @@ class MasonryPostGrid extends StatelessWidget {
             showMetadata: showMetadata,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Expanded(
           child: _PostColumn(
             posts: right,
@@ -57,7 +57,7 @@ class MasonryPostGrid extends StatelessWidget {
 }
 
 class _PostColumn extends StatelessWidget {
-  const _PostColumn({
+  _PostColumn({
     required this.posts,
     required this.onOpenPost,
     required this.offset,
@@ -75,7 +75,7 @@ class _PostColumn extends StatelessWidget {
       children: [
         for (var i = 0; i < posts.length; i++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 18),
+            padding: EdgeInsets.only(bottom: 18),
             child: PostCard(
               post: posts[i],
               imageHeight: 172 + (((i + offset) % 3) * 42),
@@ -89,7 +89,7 @@ class _PostColumn extends StatelessWidget {
 }
 
 class PostCard extends StatelessWidget {
-  const PostCard({
+  PostCard({
     super.key,
     required this.post,
     required this.imageHeight,
@@ -122,19 +122,19 @@ class PostCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             errorChild: Container(
               height: imageHeight,
-              color: AppColors.soft,
+              color: context.appColors.soft,
               alignment: Alignment.center,
-              child: const Icon(Icons.image_not_supported_outlined),
+              child: Icon(Icons.image_not_supported_outlined),
             ),
           ),
           if (hasCaption) ...[
-            const SizedBox(height: 7),
+            SizedBox(height: 7),
             RichText(
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               text: TextSpan(
-                style: const TextStyle(
-                  color: AppColors.text,
+                style: TextStyle(
+                  color: context.appColors.text,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   height: 1.2,
@@ -142,13 +142,13 @@ class PostCard extends StatelessWidget {
                 children: [
                   TextSpan(text: post.title),
                   if (post.isForSale) ...[
-                    const TextSpan(
+                    TextSpan(
                       text: ' · ',
-                      style: TextStyle(color: AppColors.textLight),
+                      style: TextStyle(color: context.appColors.textLight),
                     ),
                     TextSpan(
                       text: post.priceLabel,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ],
                 ],
@@ -162,7 +162,7 @@ class PostCard extends StatelessWidget {
 }
 
 class AlbumGrid extends StatelessWidget {
-  const AlbumGrid({
+  AlbumGrid({
     super.key,
     required this.posts,
     required this.onOpenPost,
@@ -181,9 +181,9 @@ class AlbumGrid extends StatelessWidget {
     final overflow = posts.length - visiblePosts.length;
     return GridView.builder(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      physics: NeverScrollableScrollPhysics(),
       itemCount: visiblePosts.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 3,
         crossAxisSpacing: 3,
@@ -214,7 +214,7 @@ class AlbumGrid extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       '+$overflow more',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
                       ),

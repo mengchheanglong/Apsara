@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 import 'app_cached_media.dart';
 
 class ChatListItem extends StatelessWidget {
-  const ChatListItem({
+  ChatListItem({
     super.key,
     required this.room,
     required this.currentUserId,
@@ -35,27 +35,29 @@ class ChatListItem extends StatelessWidget {
             : room.lastMessage;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 7),
+      contentPadding: EdgeInsets.symmetric(vertical: 7),
       onTap: onTap,
       onLongPress: onLongPress,
       leading: AppAvatar(
         displayName: visiblePeer.displayName,
         imageUrl: visiblePeer.avatarUrl,
         radius: 24,
-        backgroundColor: AppColors.chatAccent,
+        backgroundColor: context.appColors.chatAccent,
       ),
       title: Text(
         visiblePeer.displayName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w600),
+        style: TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         preview.isEmpty ? 'No messages yet' : preview,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: isTyping ? AppColors.chatAccent : AppColors.textSecondary,
+          color: isTyping
+              ? context.appColors.chatAccent
+              : context.appColors.textSecondary,
           fontSize: 12.5,
         ),
       ),
@@ -65,16 +67,16 @@ class ChatListItem extends StatelessWidget {
         children: [
           Text(
             _timeLabel(room.updatedAt),
-            style: const TextStyle(color: AppColors.textLight, fontSize: 11),
+            style: TextStyle(color: context.appColors.textLight, fontSize: 11),
           ),
           if (unread > 0) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             CircleAvatar(
               radius: 10,
-              backgroundColor: AppColors.chatOutgoing,
+              backgroundColor: context.appColors.chatOutgoing,
               child: Text(
                 unread > 9 ? '9+' : unread.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 10),
+                style: TextStyle(color: Colors.white, fontSize: 10),
               ),
             ),
           ],

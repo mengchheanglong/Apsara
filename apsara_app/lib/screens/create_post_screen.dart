@@ -11,7 +11,7 @@ import '../utils/app_logger.dart';
 import '../widgets/form_fields.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({
+  CreatePostScreen({
     super.key,
     required this.onCreatePost,
     required this.sellerId,
@@ -55,22 +55,24 @@ class CreatePostScreenState extends State<CreatePostScreen> {
   Widget build(BuildContext context) {
     final cardShadow = [
       BoxShadow(
-        color: const Color(0xFF5B2F1E).withValues(alpha: 0.08),
+        color: Colors.black.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.24 : 0.08,
+        ),
         blurRadius: 22,
-        offset: const Offset(0, 10),
+        offset: Offset(0, 10),
       ),
     ];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
         _SectionLabel('Cover image'),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appColors.surfaceWarm,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: context.appColors.border, width: 1),
             boxShadow: cardShadow,
           ),
           child: AspectRatio(
@@ -81,21 +83,21 @@ class CreatePostScreenState extends State<CreatePostScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: ColoredBox(
-                  color: Colors.white,
+                  color: context.appColors.surfaceWarm,
                   child: _selectedImage == null
-                      ? const Column(
+                      ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.photo_camera_outlined,
-                              color: AppColors.textLight,
+                              color: context.appColors.textLight,
                               size: 34,
                             ),
                             SizedBox(height: 10),
                             Text(
                               'Add cover photo',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: context.appColors.textSecondary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -118,7 +120,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                                   color: Colors.black.withValues(alpha: 0.42),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
@@ -141,20 +143,21 @@ class CreatePostScreenState extends State<CreatePostScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         _SectionLabel('Post details'),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appColors.surfaceWarm,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: context.appColors.border),
             boxShadow: cardShadow,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final useTwoColumns = constraints.maxWidth >= 320;
+                final useTwoColumns = constraints.maxWidth >= 360;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,13 +166,13 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                       label: 'Title',
                       controller: _title,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     LabeledField(
                       label: 'Description',
                       controller: _description,
                       maxLines: 5,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     if (useTwoColumns)
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,12 +188,12 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                                   setState(() => _category = value),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: DropdownField(
                               label: 'Condition',
                               value: _condition,
-                              values: const [
+                              values: [
                                 'Unknown',
                                 'New',
                                 'Like new',
@@ -211,11 +214,11 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                             categories.where((item) => item != 'All').toList(),
                         onChanged: (value) => setState(() => _category = value),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       DropdownField(
                         label: 'Condition',
                         value: _condition,
-                        values: const [
+                        values: [
                           'Unknown',
                           'New',
                           'Like new',
@@ -226,16 +229,16 @@ class CreatePostScreenState extends State<CreatePostScreen> {
                             setState(() => _condition = value),
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     LabeledField(
                       label: 'Price',
                       controller: _price,
-                      keyboardType: const TextInputType.numberWithOptions(
+                      keyboardType: TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       prefixText: '\$ ',
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     LabeledField(
                       label: 'Location',
                       controller: _location,
@@ -247,14 +250,17 @@ class CreatePostScreenState extends State<CreatePostScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
             onPressed: _isPublishing ? null : _submit,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size.fromHeight(56),
+              backgroundColor: context.appColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: context.appColors.soft,
+              disabledForegroundColor: context.appColors.textLight,
+              minimumSize: Size.fromHeight(56),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -262,7 +268,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
             ),
             child: Text(
               _isPublishing ? 'Posting...' : 'Post',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
@@ -270,11 +276,11 @@ class CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ),
         if (_formError != null) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             _formError!,
-            style: const TextStyle(
-              color: AppColors.primary,
+            style: TextStyle(
+              color: context.appColors.primary,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -365,7 +371,7 @@ class CreatePostScreenState extends State<CreatePostScreen> {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+  _SectionLabel(this.text);
 
   final String text;
 
@@ -373,8 +379,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: AppColors.text,
+      style: TextStyle(
+        color: context.appColors.text,
         fontSize: 15,
         fontWeight: FontWeight.w700,
       ),

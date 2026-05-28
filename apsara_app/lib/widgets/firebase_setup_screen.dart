@@ -55,8 +55,7 @@ class FirebaseSetupScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     Text(
                       'Init error: $error',
-                      style: const TextStyle(
-                          color: AppColors.primary, fontSize: 12),
+                      style: TextStyle(color: AppColors.primary, fontSize: 12),
                     ),
                   ],
                 ],

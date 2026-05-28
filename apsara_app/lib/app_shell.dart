@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'models/art_post.dart';
@@ -25,34 +26,41 @@ import 'theme/app_theme.dart';
 import 'utils/app_logger.dart';
 
 class ApsaraShell extends StatefulWidget {
-  const ApsaraShell({
+  ApsaraShell({
     super.key,
     required this.user,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
   });
 
   final User user;
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   State<ApsaraShell> createState() => _ApsaraShellState();
 }
 
 class _ApsaraShellState extends State<ApsaraShell> {
+  static int _lastSelectedTab = 0;
+
   final _homeKey = GlobalKey<HomeScreenState>();
   final _savedKey = GlobalKey<SavedScreenState>();
   final _chatKey = GlobalKey<ChatScreenState>();
   final _profileKey = GlobalKey<ProfileScreenState>();
-  int _tab = 0;
-  List<ArtPost> _posts = const [];
+  int _tab = _lastSelectedTab;
+  List<ArtPost> _posts = [];
   bool _isLoadingPosts = true;
   Object? _postsError;
-  Set<String> _savedPostIds = const {};
-  Set<String> _likedPostIds = const {};
+  Set<String> _savedPostIds = {};
+  Set<String> _likedPostIds = {};
   late UserProfile _profile;
   ChatPeer? _initialChatPeer;
   StreamSubscription<List<ArtPost>>? _postsSubscription;
   StreamSubscription<Set<String>>? _savedPostsSubscription;
   StreamSubscription<Set<String>>? _likedPostsSubscription;
   StreamSubscription<UserProfile>? _profileSubscription;
+  DateTime? _lastExitAttemptAt;
 
   int get _currentSellerId => widget.user.uid.hashCode;
 
@@ -149,47 +157,76 @@ class _ApsaraShellState extends State<ApsaraShell> {
         onOpenPost: _openPost,
         onUpdateProfile: _updateProfile,
         onLogout: () async => AuthService.instance.signOut(),
+        isDarkMode: widget.isDarkMode,
+        onDarkModeChanged: widget.onDarkModeChanged,
       ),
     ];
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: IndexedStack(
-          index: _tab,
-          children: pages,
+    return PopScope<void>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) {
+          return;
+        }
+        if (_tab == 2 && (_chatKey.currentState?.handleSystemBack() ?? false)) {
+          return;
+        }
+
+        final now = DateTime.now();
+        final shouldExit = _lastExitAttemptAt != null &&
+            now.difference(_lastExitAttemptAt!) <= Duration(seconds: 2);
+
+        if (shouldExit) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          await SystemNavigator.pop();
+          return;
+        }
+
+        _lastExitAttemptAt = now;
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: IndexedStack(
+            index: _tab,
+            children: pages,
+          ),
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        height: 72,
-        selectedIndex: _tab,
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.soft,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-        onDestinationSelected: _selectTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppColors.primary),
-            label: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bookmark_border_rounded),
-            selectedIcon:
-                Icon(Icons.bookmark_rounded, color: AppColors.primary),
-            label: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.mode_comment_outlined),
-            selectedIcon: Icon(Icons.mode_comment, color: AppColors.primary),
-            label: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: AppColors.primary),
-            label: '',
-          ),
-        ],
+        bottomNavigationBar: NavigationBar(
+          height: 72,
+          selectedIndex: _tab,
+          backgroundColor: context.appColors.surface,
+          indicatorColor: context.appColors.soft,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+          onDestinationSelected: _selectTab,
+          destinations: [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home, color: context.appColors.primary),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bookmark_border_rounded),
+              selectedIcon: Icon(
+                Icons.bookmark_rounded,
+                color: context.appColors.primary,
+              ),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.mode_comment_outlined),
+              selectedIcon:
+                  Icon(Icons.mode_comment, color: context.appColors.primary),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon:
+                  Icon(Icons.person, color: context.appColors.primary),
+              label: '',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -200,7 +237,10 @@ class _ApsaraShellState extends State<ApsaraShell> {
       return;
     }
 
-    setState(() => _tab = index);
+    setState(() {
+      _tab = index;
+      _lastSelectedTab = index;
+    });
   }
 
   void _refreshCurrentTab() {
@@ -298,6 +338,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
 
     setState(() {
       _tab = 0;
+      _lastSelectedTab = 0;
     });
   }
 
@@ -531,7 +572,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
     final sellerUid = post.sellerUid;
     if (sellerUid == null || sellerUid.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seller chat is unavailable.')),
+        SnackBar(content: Text('Seller chat is unavailable.')),
       );
       return;
     }
@@ -543,14 +584,15 @@ class _ApsaraShellState extends State<ApsaraShell> {
         email: '',
       );
       _tab = 2;
+      _lastSelectedTab = 2;
     });
   }
 
   Future<void> _openPostTools() async {
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 240),
-        reverseTransitionDuration: const Duration(milliseconds: 220),
+        transitionDuration: Duration(milliseconds: 240),
+        reverseTransitionDuration: Duration(milliseconds: 220),
         pageBuilder: (context, animation, secondaryAnimation) {
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -560,14 +602,14 @@ class _ApsaraShellState extends State<ApsaraShell> {
               }
             },
             child: Scaffold(
-              backgroundColor: AppColors.surface,
+              backgroundColor: context.appColors.surface,
               appBar: AppBar(
                 toolbarHeight: 52,
-                backgroundColor: AppColors.surface,
-                surfaceTintColor: AppColors.surface,
+                backgroundColor: context.appColors.surface,
+                surfaceTintColor: context.appColors.surface,
                 elevation: 0,
                 centerTitle: false,
-                title: const Text('New post'),
+                title: Text('New post'),
               ),
               body: SafeArea(
                 top: false,
@@ -583,7 +625,7 @@ class _ApsaraShellState extends State<ApsaraShell> {
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final offsetAnimation = Tween<Offset>(
-            begin: const Offset(-1, 0),
+            begin: Offset(-1, 0),
             end: Offset.zero,
           ).animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));

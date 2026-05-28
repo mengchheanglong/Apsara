@@ -9,7 +9,7 @@ import '../widgets/post_grids.dart';
 import 'public_user_profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({
+  SearchScreen({
     super.key,
     required this.posts,
     required this.onOpenPost,
@@ -43,7 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   List<ArtPost> get _results {
     final q = _normalize(_query);
-    if (q.isEmpty) return const <ArtPost>[];
+    if (q.isEmpty) return <ArtPost>[];
     final terms = q.split(RegExp(r'\s+')).where((term) => term.isNotEmpty);
     return widget.posts.where((post) {
       final fields = [
@@ -78,17 +78,17 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 16, 12),
+              padding: EdgeInsets.fromLTRB(12, 8, 16, 12),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: Icon(Icons.arrow_back),
                   ),
                   Expanded(
                     child: TextField(
@@ -97,8 +97,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       onChanged: (value) => setState(() => _query = value),
                       decoration: InputDecoration(
                         hintText: 'Search posts or users...',
-                        prefixIcon: const Icon(Icons.search,
-                            color: AppColors.textLight),
+                        prefixIcon: Icon(Icons.search,
+                            color: context.appColors.textLight),
                         suffixIcon: _query.isEmpty
                             ? null
                             : IconButton(
@@ -106,8 +106,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                   _controller.clear();
                                   setState(() => _query = '');
                                 },
-                                icon: const Icon(Icons.close,
-                                    color: AppColors.textLight),
+                                icon: Icon(Icons.close,
+                                    color: context.appColors.textLight),
                               ),
                       ),
                     ),
@@ -128,21 +128,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSuggestionView() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
         if (_recentSearches.isNotEmpty) ...[
-          const Text(
+          Text(
             'Recent searches',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: _recentSearches.map((term) {
               return ActionChip(
                 label: Text(term),
-                backgroundColor: AppColors.soft,
+                backgroundColor: context.appColors.soft,
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(22)),
@@ -150,20 +150,20 @@ class _SearchScreenState extends State<SearchScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: 28),
         ],
-        const Text(
+        Text(
           'Discover',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: _suggestions.map((term) {
             return ActionChip(
               label: Text(term),
-              backgroundColor: AppColors.soft,
+              backgroundColor: context.appColors.soft,
               side: BorderSide.none,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(22)),
@@ -180,37 +180,37 @@ class _SearchScreenState extends State<SearchScreen> {
     return StreamBuilder<List<UserProfile>>(
       stream: ProfileService.instance.watchProfiles(),
       builder: (context, snapshot) {
-        final users = _filterUsers(snapshot.data ?? const <UserProfile>[]);
+        final users = _filterUsers(snapshot.data ?? <UserProfile>[]);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               '${users.length + results.length} results',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             if (users.isEmpty && results.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 80),
                 child: Center(
                   child: Text(
                     'No matching posts or users found.',
-                    style: TextStyle(color: AppColors.textLight),
+                    style: TextStyle(color: context.appColors.textLight),
                   ),
                 ),
               )
             else ...[
               if (users.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Users',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 for (final user in users)
                   _SearchUserTile(
                     match: _SearchUserMatch(
@@ -219,14 +219,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       avatarUrl: user.avatarUrl,
                     ),
                   ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
               ],
               if (results.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Posts',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 MasonryPostGrid(
                   posts: results,
                   onOpenPost: (post) {
@@ -254,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<UserProfile> _filterUsers(List<UserProfile> users) {
     final q = _normalize(_query);
     if (q.isEmpty) {
-      return const <UserProfile>[];
+      return <UserProfile>[];
     }
 
     final terms = q.split(RegExp(r'\s+')).where((term) => term.isNotEmpty);
@@ -271,7 +271,7 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 class _SearchUserMatch {
-  const _SearchUserMatch({
+  _SearchUserMatch({
     required this.userId,
     required this.fallbackName,
     this.avatarUrl,
@@ -283,7 +283,7 @@ class _SearchUserMatch {
 }
 
 class _SearchUserTile extends StatelessWidget {
-  const _SearchUserTile({
+  _SearchUserTile({
     required this.match,
   });
 
@@ -301,7 +301,7 @@ class _SearchUserTile extends StatelessWidget {
         final avatarUrl = profile?.avatarUrl ?? match.avatarUrl;
 
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+          contentPadding: EdgeInsets.symmetric(vertical: 6),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -317,27 +317,27 @@ class _SearchUserTile extends StatelessWidget {
             displayName: displayName,
             imageUrl: avatarUrl,
             radius: 22,
-            backgroundColor: AppColors.secondary,
+            backgroundColor: context.appColors.secondary,
           ),
           title: Text(
             displayName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
-          subtitle: const Text(
+          subtitle: Text(
             'View profile',
             style: TextStyle(
-              color: AppColors.textLight,
+              color: context.appColors.textLight,
               fontSize: 12,
             ),
           ),
-          trailing: const Icon(
+          trailing: Icon(
             Icons.chevron_right,
-            color: AppColors.textLight,
+            color: context.appColors.textLight,
           ),
         );
       },

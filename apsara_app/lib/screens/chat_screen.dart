@@ -13,7 +13,7 @@ import '../widgets/empty_state.dart';
 import 'chat_room_view.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({
+  ChatScreen({
     super.key,
     required this.currentUser,
     required this.currentProfile,
@@ -36,7 +36,7 @@ class ChatScreenState extends State<ChatScreen> {
   final _searchController = TextEditingController();
   final Map<String, ChatPeer> _cachedPeersByRoomId = {};
   StreamSubscription<List<ChatRoomPreview>>? _roomsSubscription;
-  List<ChatRoomPreview> _rooms = const [];
+  List<ChatRoomPreview> _rooms = [];
   bool _isLoadingRooms = true;
   Object? _roomsError;
   String _query = '';
@@ -67,6 +67,14 @@ class ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  bool handleSystemBack() {
+    if (_activePeer == null) {
+      return false;
+    }
+    setState(() => _activePeer = null);
+    return true;
+  }
+
   void refreshCurrentTab() {
     if (_activePeer != null) {
       setState(() => _activePeer = null);
@@ -82,7 +90,7 @@ class ChatScreenState extends State<ChatScreen> {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
-        duration: const Duration(milliseconds: 260),
+        duration: Duration(milliseconds: 260),
         curve: Curves.easeOutCubic,
       );
     }
@@ -178,25 +186,25 @@ class ChatScreenState extends State<ChatScreen> {
             )
           : ListView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 96),
+              padding: EdgeInsets.fromLTRB(16, 18, 16, 96),
               children: [
-                const Text(
+                Text(
                   'Messages',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: context.appColors.primary,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 TextField(
                   controller: _searchController,
                   onChanged: (value) => setState(() => _query = value.trim()),
                   decoration: InputDecoration(
                     hintText: 'Search people',
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.search,
-                      color: AppColors.textLight,
+                      color: context.appColors.textLight,
                     ),
                     suffixIcon: _query.isEmpty
                         ? null
@@ -205,16 +213,16 @@ class ChatScreenState extends State<ChatScreen> {
                               _searchController.clear();
                               setState(() => _query = '');
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.close,
-                              color: AppColors.textLight,
+                              color: context.appColors.textLight,
                             ),
                           ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
+                  duration: Duration(milliseconds: 220),
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeOutCubic,
                   child: _buildRoomContent(),
@@ -228,9 +236,9 @@ class ChatScreenState extends State<ChatScreen> {
     final visibleRooms = _visibleRooms;
     if (visibleRooms.isNotEmpty) {
       return AnimatedOpacity(
-        key: const ValueKey('chat_rooms'),
+        key: ValueKey('chat_rooms'),
         opacity: 1,
-        duration: const Duration(milliseconds: 180),
+        duration: Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         child: Column(
           children: [
@@ -258,7 +266,7 @@ class ChatScreenState extends State<ChatScreen> {
                 onDelete: (peer) => _confirmDeleteChat(room, peer),
               ),
             if (_isLoadingRooms)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 10),
                 child: _SoftLoadingLine(),
               ),
@@ -268,7 +276,7 @@ class ChatScreenState extends State<ChatScreen> {
     }
 
     if (_query.isNotEmpty && !_isLoadingRooms) {
-      return const EmptyState(
+      return EmptyState(
         key: ValueKey('chat_search_empty'),
         icon: Icons.search_off_rounded,
         title: 'No matching chats',
@@ -277,27 +285,27 @@ class ChatScreenState extends State<ChatScreen> {
     }
 
     if (_isLoadingRooms) {
-      return const _ChatListLoading(key: ValueKey('chat_loading'));
+      return _ChatListLoading(key: ValueKey('chat_loading'));
     }
 
     if (_roomsError != null) {
       return Column(
-        key: const ValueKey('chat_error'),
+        key: ValueKey('chat_error'),
         children: [
-          const EmptyState(
+          EmptyState(
             icon: Icons.wifi_tethering_error_rounded,
             title: 'Messages are taking a moment',
             subtitle: 'Check your connection and try again',
           ),
           TextButton(
             onPressed: _watchRooms,
-            child: const Text('Retry'),
+            child: Text('Retry'),
           ),
         ],
       );
     }
 
-    return const EmptyState(
+    return EmptyState(
       key: ValueKey('chat_empty'),
       icon: Icons.mode_comment_outlined,
       title: 'No messages yet',
@@ -308,22 +316,22 @@ class ChatScreenState extends State<ChatScreen> {
   Future<void> _confirmDeleteChat(ChatRoomPreview room, ChatPeer peer) async {
     final selectedDelete = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
+      backgroundColor: context.appColors.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+            padding: EdgeInsets.fromLTRB(8, 8, 8, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: const Icon(Icons.delete_outline,
-                      color: AppColors.primary),
-                  title: const Text('Delete chat'),
-                  subtitle: const Text('Remove it from your Messages list'),
+                  leading: Icon(Icons.delete_outline,
+                      color: context.appColors.primary),
+                  title: Text('Delete chat'),
+                  subtitle: Text('Remove it from your Messages list'),
                   onTap: () => Navigator.of(context).pop(true),
                 ),
               ],
@@ -340,21 +348,22 @@ class ChatScreenState extends State<ChatScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: AppColors.surface,
-          title: const Text('Delete chat?'),
+          backgroundColor: context.appColors.surface,
+          surfaceTintColor: context.appColors.surface,
+          title: Text('Delete chat?'),
           content: Text(
             'This removes ${peer.displayName} from your Messages list until a new message appears.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              child: const Text('Delete'),
+              style: TextButton.styleFrom(
+                  foregroundColor: context.appColors.primary),
+              child: Text('Delete'),
             ),
           ],
         );
@@ -417,15 +426,15 @@ class ChatScreenState extends State<ChatScreen> {
       lastMessageType: MessageType.text,
       lastSenderId: '',
       updatedAt: null,
-      unreadCounts: const {},
-      typingUsers: const {},
-      hiddenFor: const {},
+      unreadCounts: {},
+      typingUsers: {},
+      hiddenFor: {},
     );
   }
 }
 
 class _ProfileAwareChatListItem extends StatelessWidget {
-  const _ProfileAwareChatListItem({
+  _ProfileAwareChatListItem({
     required this.room,
     required this.currentUserId,
     required this.cachedPeer,
@@ -484,22 +493,22 @@ class _ProfileAwareChatListItem extends StatelessWidget {
 }
 
 class _ChatListLoading extends StatelessWidget {
-  const _ChatListLoading({super.key});
+  _ChatListLoading({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(height: 220);
+    return SizedBox(height: 220);
   }
 }
 
 class _SoftLoadingLine extends StatelessWidget {
-  const _SoftLoadingLine();
+  _SoftLoadingLine();
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.35, end: 1),
-      duration: const Duration(milliseconds: 700),
+      duration: Duration(milliseconds: 700),
       curve: Curves.easeInOut,
       builder: (context, opacity, child) {
         return Opacity(opacity: opacity, child: child);
@@ -508,7 +517,7 @@ class _SoftLoadingLine extends StatelessWidget {
         width: 84,
         height: 3,
         decoration: BoxDecoration(
-          color: AppColors.chatOutgoingSoft,
+          color: context.appColors.chatOutgoingSoft,
           borderRadius: BorderRadius.circular(999),
         ),
       ),

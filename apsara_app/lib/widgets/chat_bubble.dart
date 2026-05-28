@@ -6,7 +6,7 @@ import '../models/message_model.dart';
 import '../theme/app_theme.dart';
 
 class ChatBubble extends StatelessWidget {
-  const ChatBubble({
+  ChatBubble({
     super.key,
     required this.message,
     required this.isMine,
@@ -19,25 +19,27 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor =
-        isMine ? AppColors.chatOutgoing : AppColors.chatIncoming;
-    final textColor = isMine ? Colors.white : AppColors.text;
+    final bubbleColor = isMine
+        ? context.appColors.chatOutgoing
+        : context.appColors.chatIncoming;
+    final textColor = isMine ? Colors.white : context.appColors.text;
 
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.only(bottom: 8),
-        constraints: const BoxConstraints(maxWidth: 292),
+        margin: EdgeInsets.only(bottom: 8),
+        constraints: BoxConstraints(maxWidth: 292),
         padding: EdgeInsets.all(message.type == MessageType.image ? 4 : 11),
         decoration: BoxDecoration(
           color: bubbleColor,
-          border:
-              isMine ? null : Border.all(color: AppColors.chatIncomingBorder),
+          border: isMine
+              ? null
+              : Border.all(color: context.appColors.chatIncomingBorder),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
+            topLeft: Radius.circular(18),
+            topRight: Radius.circular(18),
             bottomLeft: Radius.circular(isMine ? 18 : 5),
             bottomRight: Radius.circular(isMine ? 5 : 18),
           ),
@@ -45,7 +47,7 @@ class ChatBubble extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.035),
               blurRadius: 12,
-              offset: const Offset(0, 5),
+              offset: Offset(0, 5),
             ),
           ],
         ),
@@ -65,16 +67,16 @@ class ChatBubble extends StatelessWidget {
                   placeholder: (_, __) => Container(
                     width: 230,
                     height: 260,
-                    color: AppColors.soft,
+                    color: context.appColors.soft,
                     alignment: Alignment.center,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                   errorWidget: (_, __, ___) => Container(
                     width: 230,
                     height: 180,
-                    color: AppColors.soft,
+                    color: context.appColors.soft,
                     alignment: Alignment.center,
-                    child: const Icon(Icons.broken_image_outlined),
+                    child: Icon(Icons.broken_image_outlined),
                   ),
                 ),
               )
@@ -87,19 +89,20 @@ class ChatBubble extends StatelessWidget {
                   height: 1.35,
                 ),
               ),
-            const SizedBox(height: 5),
+            SizedBox(height: 5),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   _timeLabel(message.timestamp),
                   style: TextStyle(
-                    color: isMine ? Colors.white70 : AppColors.textLight,
+                    color:
+                        isMine ? Colors.white70 : context.appColors.textLight,
                     fontSize: 10.5,
                   ),
                 ),
                 if (isMine) ...[
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   _ReceiptIcon(message: message, peerId: peerId),
                 ],
               ],
@@ -119,7 +122,7 @@ class ChatBubble extends StatelessWidget {
 }
 
 class _ReceiptIcon extends StatelessWidget {
-  const _ReceiptIcon({
+  _ReceiptIcon({
     required this.message,
     required this.peerId,
   });
@@ -130,10 +133,10 @@ class _ReceiptIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message.localStatus == LocalMessageStatus.failed) {
-      return const Icon(Icons.error_outline, size: 14, color: Colors.white70);
+      return Icon(Icons.error_outline, size: 14, color: Colors.white70);
     }
     if (message.localStatus == LocalMessageStatus.sending) {
-      return const SizedBox(
+      return SizedBox(
         width: 12,
         height: 12,
         child: CircularProgressIndicator(
@@ -144,11 +147,11 @@ class _ReceiptIcon extends StatelessWidget {
     }
 
     if (message.wasReadBy(peerId)) {
-      return const Icon(Icons.done_all, size: 15, color: AppColors.chatRead);
+      return Icon(Icons.done_all, size: 15, color: context.appColors.chatRead);
     }
     if (message.wasDeliveredTo(peerId)) {
-      return const Icon(Icons.done_all, size: 15, color: Colors.white70);
+      return Icon(Icons.done_all, size: 15, color: Colors.white70);
     }
-    return const Icon(Icons.done, size: 15, color: Colors.white70);
+    return Icon(Icons.done, size: 15, color: Colors.white70);
   }
 }

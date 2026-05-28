@@ -101,7 +101,7 @@ class _MessageInputState extends State<MessageInput> {
 }
 
 class _MessageInputBody extends StatefulWidget {
-  const _MessageInputBody({
+  _MessageInputBody({
     required this.focusNode,
     required this.onSendText,
     required this.onSendImage,
@@ -136,9 +136,9 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
     return SafeArea(
       top: false,
       child: AnimatedPadding(
-        duration: const Duration(milliseconds: 160),
+        duration: Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -148,19 +148,19 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: widget.quickActions.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, __) => SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final action = widget.quickActions[index];
                     return ActionChip(
                       label: Text(action),
-                      backgroundColor: AppColors.soft,
+                      backgroundColor: context.appColors.soft,
                       side: BorderSide.none,
                       onPressed: () => _sendPresetText(action),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
             ],
             if (controller.isUploading) ...[
               LinearProgressIndicator(
@@ -168,17 +168,17 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
                     ? null
                     : controller.uploadProgress,
                 minHeight: 2,
-                color: AppColors.primary,
-                backgroundColor: AppColors.border,
+                color: context.appColors.primary,
+                backgroundColor: context.appColors.border,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
             ],
             Row(
               children: [
                 IconButton(
                   onPressed: controller.isUploading ? null : _pickImage,
-                  icon: const Icon(Icons.photo_outlined),
-                  color: AppColors.textSecondary,
+                  icon: Icon(Icons.photo_outlined),
+                  color: context.appColors.textSecondary,
                 ),
                 Expanded(
                   child: TextField(
@@ -188,22 +188,22 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
                     maxLines: 5,
                     textInputAction: TextInputAction.newline,
                     onChanged: _handleTyping,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Message',
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 IconButton.filled(
                   onPressed: controller.canSend ? _sendText : null,
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.chatOutgoing,
-                    disabledBackgroundColor: AppColors.border,
+                    backgroundColor: context.appColors.chatOutgoing,
+                    disabledBackgroundColor: context.appColors.border,
                     foregroundColor: Colors.white,
                   ),
-                  icon: const Icon(Icons.arrow_upward),
+                  icon: Icon(Icons.arrow_upward),
                 ),
               ],
             ),
@@ -289,7 +289,7 @@ class _MessageInputBodyState extends State<_MessageInputBody> {
     widget.onTypingChanged(isTyping);
     _typingTimer?.cancel();
     if (isTyping) {
-      _typingTimer = Timer(const Duration(seconds: 2), () {
+      _typingTimer = Timer(Duration(seconds: 2), () {
         widget.onTypingChanged(false);
       });
     }

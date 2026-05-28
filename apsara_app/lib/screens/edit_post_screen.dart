@@ -12,7 +12,7 @@ import '../widgets/app_cached_media.dart';
 import '../widgets/form_fields.dart';
 
 class EditPostScreen extends StatefulWidget {
-  const EditPostScreen({
+  EditPostScreen({
     super.key,
     required this.post,
     required this.onUpdatePost,
@@ -91,25 +91,25 @@ class _EditPostScreenState extends State<EditPostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
         toolbarHeight: 52,
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         centerTitle: true,
-        title: const Text('Edit post'),
+        title: Text('Edit post'),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+          padding: EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
             _SectionCard(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionHeading(title: 'Cover image'),
-                  const SizedBox(height: 10),
+                  _SectionHeading(title: 'Cover image'),
+                  SizedBox(height: 10),
                   AspectRatio(
                     aspectRatio: 4 / 3,
                     child: InkWell(
@@ -117,9 +117,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       borderRadius: BorderRadius.circular(16),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.appColors.surfaceWarm,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border, width: 2),
+                          border: Border.all(
+                              color: context.appColors.border, width: 2),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
@@ -128,7 +129,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                                   imageUrl: widget.post.imageUrl,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  errorChild: const Center(
+                                  errorChild: Center(
                                     child: Icon(
                                       Icons.image_not_supported_outlined,
                                     ),
@@ -143,16 +144,16 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: _isSaving ? null : _pickImage,
-                      icon: const Icon(Icons.swap_horiz, size: 16),
-                      label: const Text('Replace photo'),
+                      icon: Icon(Icons.swap_horiz, size: 16),
+                      label: Text('Replace photo'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        textStyle: const TextStyle(
+                        foregroundColor: context.appColors.textSecondary,
+                        textStyle: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -162,24 +163,24 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionHeading(title: 'Post details'),
-                  const SizedBox(height: 10),
+                  _SectionHeading(title: 'Post details'),
+                  SizedBox(height: 10),
                   LabeledField(
                     label: 'Title',
                     controller: _title,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   LabeledField(
                     label: 'Description',
                     controller: _description,
                     maxLines: 4,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -191,7 +192,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                               setState(() => _category = value),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: DropdownField(
                           label: 'Condition',
@@ -203,7 +204,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -215,7 +216,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                           keyboardType: TextInputType.number,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: LabeledField(
                           label: 'Location',
@@ -228,7 +229,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,8 +239,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
                     child: FilledButton(
                       onPressed: _isSaving ? null : _save,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: context.appColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: context.appColors.soft,
+                        disabledForegroundColor: context.appColors.textLight,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -248,11 +252,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
                     ),
                   ),
                   if (_formError != null) ...[
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       _formError!,
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: TextStyle(
+                        color: context.appColors.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -338,7 +342,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
+  _SectionCard({
     required this.child,
     this.padding = const EdgeInsets.all(16),
   });
@@ -351,7 +355,7 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.soft,
+        color: context.appColors.soft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: child,
@@ -360,7 +364,7 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
+  _SectionHeading({
     required this.title,
   });
 
@@ -370,7 +374,7 @@ class _SectionHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
       ),

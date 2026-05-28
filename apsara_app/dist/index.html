@@ -132,11 +132,19 @@
         >
       </div>
 
-      <a class="button" id="download-link" href="apsara-test-0.1.1-2.apk" download>
+      <a
+        class="button"
+        id="download-link"
+        href="https://github.com/mengchheanglong/Apsara/releases/download/apsara-test-latest/apsara-latest.apk"
+      >
         Download APK
       </a>
 
-      <a class="link" id="download-url" href="apsara-test-0.1.1-2.apk"></a>
+      <a
+        class="link"
+        id="download-url"
+        href="https://github.com/mengchheanglong/Apsara/releases/download/apsara-test-latest/apsara-latest.apk"
+      ></a>
 
       <div class="note">
         Android may ask you to allow installs from your browser or files app.
@@ -146,7 +154,7 @@
     <script>
       const downloadLink = document.getElementById("download-link");
       const downloadUrl = document.getElementById("download-url");
-      const apkUrl = new URL("apsara-test-0.1.1-2.apk", window.location.href).href;
+      const apkUrl = "https://github.com/mengchheanglong/Apsara/releases/download/apsara-test-latest/apsara-latest.apk";
 
       downloadLink.href = apkUrl;
       downloadUrl.href = apkUrl;

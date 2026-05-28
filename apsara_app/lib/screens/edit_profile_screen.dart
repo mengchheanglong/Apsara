@@ -11,7 +11,7 @@ import '../widgets/app_cached_media.dart';
 import '../widgets/form_fields.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({
+  EditProfileScreen({
     super.key,
     required this.profile,
     required this.onSave,
@@ -54,16 +54,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final avatarUrl = widget.profile.avatarUrl;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
+        surfaceTintColor: context.appColors.surface,
         centerTitle: true,
-        title: const Text('Edit profile'),
+        title: Text('Edit profile'),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+          padding: EdgeInsets.fromLTRB(18, 18, 18, 28),
           children: [
             Center(
               child: Stack(
@@ -72,8 +72,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _selectedImage != null
                       ? CircleAvatar(
                           radius: 52,
-                          backgroundColor: AppColors.text,
-                          backgroundImage: FileImage(File(_selectedImage!.path)),
+                          backgroundColor: context.appColors.text,
+                          backgroundImage:
+                              FileImage(File(_selectedImage!.path)),
                         )
                       : AppAvatar(
                           displayName: widget.profile.displayName,
@@ -88,22 +89,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: IconButton.filled(
                       onPressed: _isSaving ? null : _pickProfileImage,
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColors.text,
+                        backgroundColor: context.appColors.primary,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: context.appColors.soft,
+                        disabledForegroundColor: context.appColors.textLight,
                       ),
-                      icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                      icon: Icon(Icons.camera_alt_outlined, size: 18),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 26),
+            SizedBox(height: 26),
             LabeledField(
               label: 'Name',
               controller: _name,
               hint: 'Your display name',
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             LabeledField(
               label: 'Bio',
               controller: _bio,
@@ -111,22 +114,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               maxLines: 4,
             ),
             if (_errorText != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 _errorText!,
-                style: const TextStyle(
-                  color: AppColors.primary,
+                style: TextStyle(
+                  color: context.appColors.primary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             FilledButton(
               onPressed: _isSaving ? null : _save,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.text,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: context.appColors.primary,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: context.appColors.soft,
+                disabledForegroundColor: context.appColors.textLight,
+                padding: EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(_isSaving ? 'Saving...' : 'Save changes'),
             ),

@@ -8,13 +8,15 @@ import '../widgets/post_grids.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
+  ProfileScreen({
     super.key,
     required this.profile,
     required this.myPosts,
     required this.onOpenPost,
     required this.onUpdateProfile,
     required this.onLogout,
+    required this.isDarkMode,
+    required this.onDarkModeChanged,
   });
 
   final UserProfile profile;
@@ -26,6 +28,8 @@ class ProfileScreen extends StatefulWidget {
     String? avatarUrl,
   }) onUpdateProfile;
   final VoidCallback onLogout;
+  final bool isDarkMode;
+  final ValueChanged<bool> onDarkModeChanged;
 
   @override
   State<ProfileScreen> createState() => ProfileScreenState();
@@ -46,7 +50,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
     _scrollController.animateTo(
       0,
-      duration: const Duration(milliseconds: 260),
+      duration: Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
   }
@@ -56,17 +60,17 @@ class ProfileScreenState extends State<ProfileScreen> {
     final avatarUrl = widget.profile.avatarUrl;
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 96),
       children: [
         Stack(
           alignment: Alignment.center,
           children: [
-            const Align(
+            Align(
               alignment: Alignment.center,
               child: Text(
                 'Profile',
                 style: TextStyle(
-                    color: AppColors.primary,
+                    color: context.appColors.primary,
                     fontSize: 17,
                     fontWeight: FontWeight.w900),
               ),
@@ -75,12 +79,12 @@ class ProfileScreenState extends State<ProfileScreen> {
               alignment: Alignment.centerRight,
               child: IconButton(
                 onPressed: () => _showSettingsSheet(context),
-                icon: const Icon(Icons.settings_outlined),
+                icon: Icon(Icons.settings_outlined),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         Center(
           child: Column(
             children: [
@@ -91,19 +95,19 @@ class ProfileScreenState extends State<ProfileScreen> {
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Stack(
                 alignment: Alignment.center,
                 children: [
                   Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 42),
+                      padding: EdgeInsets.symmetric(horizontal: 42),
                       child: Text(
                         widget.profile.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
@@ -116,35 +120,38 @@ class ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () => _openEditProfile(context),
                       visualDensity: VisualDensity.compact,
                       style: IconButton.styleFrom(
-                        minimumSize: const Size(34, 34),
+                        minimumSize: Size(34, 34),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.edit_outlined,
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                         size: 18,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 widget.profile.bio.isEmpty ? 'No bio yet' : widget.profile.bio,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: context.appColors.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 36),
-        const Text('My Posts',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-        const SizedBox(height: 10),
+        SizedBox(height: 36),
+        Text('My Posts',
+            style: TextStyle(
+                color: context.appColors.text,
+                fontWeight: FontWeight.w700,
+                fontSize: 15)),
+        SizedBox(height: 10),
         if (widget.myPosts.isEmpty)
-          const Text('No posts yet.',
-              style: TextStyle(color: AppColors.textLight))
+          Text('No posts yet.',
+              style: TextStyle(color: context.appColors.textLight))
         else
           AlbumGrid(
             posts: widget.myPosts,
@@ -169,54 +176,124 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSettingsSheet(BuildContext context) {
+    var darkMode = widget.isDarkMode;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.48),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(999),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final sheetTheme = buildApsaraTheme(
+              brightness: darkMode ? Brightness.dark : Brightness.light,
+            );
+            final colors = darkMode ? ApsaraPalette.dark : ApsaraPalette.light;
+
+            return Theme(
+              data: sheetTheme,
+              child: SafeArea(
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 42,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colors.border,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 18),
+                        Text(
+                          'Settings',
+                          style: TextStyle(
+                            color: colors.text,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          secondary: Icon(
+                            darkMode
+                                ? Icons.dark_mode_outlined
+                                : Icons.light_mode_outlined,
+                            color: colors.textSecondary,
+                          ),
+                          title: Text(
+                            'Dark mode',
+                            style: TextStyle(
+                              color: colors.text,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          value: darkMode,
+                          thumbColor: WidgetStateProperty.resolveWith(
+                            (states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return colors.primary;
+                              }
+                              return darkMode
+                                  ? colors.textSecondary
+                                  : colors.surface;
+                            },
+                          ),
+                          trackColor: WidgetStateProperty.resolveWith(
+                            (states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return colors.primary.withValues(
+                                  alpha: darkMode ? 0.42 : 0.26,
+                                );
+                              }
+                              return colors.soft;
+                            },
+                          ),
+                          trackOutlineColor: WidgetStateProperty.all(
+                            colors.border,
+                          ),
+                          onChanged: (value) {
+                            setSheetState(() => darkMode = value);
+                            widget.onDarkModeChanged(value);
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.logout, color: colors.primary),
+                          title: Text(
+                            'Log out',
+                            style: TextStyle(
+                              color: colors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onLogout();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Settings',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.logout, color: AppColors.primary),
-                  title: const Text(
-                    'Log out',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onLogout();
-                  },
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
